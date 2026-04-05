@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Mixue Order app</string>
+
+    <!-- Auth Strings -->
+    <string name="login">Đăng Nhập</string>
+    <string name="register">Đăng Ký</string>
+    <string name="email">Email</string>
+    <string name="password">Mật khẩu</string>
+    <string name="full_name">Họ tên</string>
+    <string name="phone_number">Số điện thoại</string>
+
+    <!-- Home Strings -->
+    <string name="home">Trang Chủ</string>
+    <string name="products">Sản phẩm</string>
+    <string name="categories">Danh mục</string>
+
+    <!-- Cart Strings -->
+    <string name="cart">Giỏ Hàng</string>
+    <string name="total_price">Tổng tiền</string>
+    <string name="checkout">Thanh Toán</string>
+    <string name="clear_cart">Xóa giỏ hàng</string>
+
+    <!-- Order Strings -->
+    <string name="orders">Đơn Hàng</string>
+    <string name="order_history">Lịch Sử Đơn Hàng</string>
+    <string name="order_status">Trạng Thái Đơn Hàng</string>
+
+    <!-- Common Strings -->
+    <string name="loading">Đang tải...</string>
+    <string name="error">Có lỗi xảy ra</string>
+    <string name="success">Thành công</string>
+    <string name="back">Quay Lại</string>
+</resources>

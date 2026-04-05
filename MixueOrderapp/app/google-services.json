@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1025553077448",
+    "project_id": "mixue-order-app",
+    "storage_bucket": "mixue-order-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1025553077448:android:ac7cd4ed9992d30b3201fd",
+        "android_client_info": {
+          "package_name": "com.vohuy.mixueapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJMGB9J3gkquwByz03IqzXODmnc3ulKWY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
