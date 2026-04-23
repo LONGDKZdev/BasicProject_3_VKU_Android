@@ -57,6 +57,13 @@ class CartViewModel : BaseViewModel() {
     }
 
     /**
+     * Xóa sản phẩm khỏi giỏ (alias cho Compose)
+     */
+    fun removeFromCart(itemId: String) {
+        removeItem(itemId)
+    }
+
+    /**
      * Cập nhật số lượng sản phẩm
      */
     fun updateItemQuantity(productId: String, quantity: Int) {

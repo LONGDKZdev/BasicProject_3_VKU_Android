@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.gms.google-services")
+    kotlin("kapt")
 }
 
 android {
@@ -16,10 +17,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        buildFeatures {
-            viewBinding = true
-        }
     }
 
     buildTypes {
@@ -31,12 +28,26 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+        )
+    }
+
+    buildFeatures {
+        compose = true
+        viewBinding = true
+    }
+    
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
 
@@ -47,8 +58,29 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
+    
+    // Jetpack Compose Dependencies
+    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.activity:activity-compose:1.8.1")
+    
+    // Compose Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    
+    // Compose ViewModel & LiveData integration
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    
+    // Coil for image loading in Compose (replaces Glide)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    
+    // Compose debugging
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     
     // RecyclerView for listing items - UPDATED to 1.4.0
     implementation(libs.androidx.recyclerview)
@@ -70,9 +102,6 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
 
-    // Thư viện Glide để load ảnh kem Mixue từ URL mượt mà - Stable version
-    implementation("com.github.bumptech.glide:glide:4.16.0")
-    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
     // ViewModel và LiveData cho mô hình MVVM - UPDATED to 2.8.1
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

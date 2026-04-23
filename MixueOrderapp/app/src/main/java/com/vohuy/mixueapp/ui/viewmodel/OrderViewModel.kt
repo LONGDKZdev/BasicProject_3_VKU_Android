@@ -20,6 +20,9 @@ class OrderViewModel : BaseViewModel() {
     private val _userOrders = MutableLiveData<List<Order>>()
     val userOrders: LiveData<List<Order>> = _userOrders
 
+    private val _orders = MutableLiveData<List<Order>>()
+    val orders: LiveData<List<Order>> = _orders
+
     private val _selectedOrder = MutableLiveData<Order?>()
     val selectedOrder: LiveData<Order?> = _selectedOrder
 
@@ -65,6 +68,7 @@ class OrderViewModel : BaseViewModel() {
             when (result) {
                 is Result.Success -> {
                     _userOrders.value = result.data
+                    _orders.value = result.data
                     setLoading(false)
                 }
                 is Result.Error -> {
