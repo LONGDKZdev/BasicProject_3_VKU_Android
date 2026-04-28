@@ -6,9 +6,19 @@ plugins {
     kotlin("kapt")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.vohuy.mixueapp"
     compileSdk = 36
+
+    // Read local.properties (not committed) for Supabase keys
+    val localProperties = Properties().apply {
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.inputStream().use { load(it) }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.vohuy.mixueapp"
@@ -18,6 +28,22 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${localProperties.getProperty("SUPABASE_URL", "") }\""
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "") }\""
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_BUCKET",
+            "\"${localProperties.getProperty("SUPABASE_BUCKET", "") }\""
+        )
     }
 
     buildTypes {
@@ -46,6 +72,7 @@ android {
         compose = true
         // Compose-first UI; keep ViewBinding off unless you still need XML screens.
         viewBinding = false
+        buildConfig = true
     }
 }
 
@@ -103,6 +130,12 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
+
+    // --- Supabase (Storage) ---
+    // We only use Supabase for image storage (public bucket).
+    implementation("io.github.jan-tennert.supabase:supabase-kt:2.6.1")
+    implementation("io.github.jan-tennert.supabase:storage-kt:2.6.1")
+    implementation("io.ktor:ktor-client-okhttp:2.3.12")
 
 
     // ViewModel và LiveData cho mô hình MVVM - UPDATED to 2.8.1

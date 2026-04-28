@@ -51,3 +51,6 @@ node_modules/
 *.apk
 *.aab
 
+# Local helper scripts/tools (do not commit)
+git-filter-repo.py
+
