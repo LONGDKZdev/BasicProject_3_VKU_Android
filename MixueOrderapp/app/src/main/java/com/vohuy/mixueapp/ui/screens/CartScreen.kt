@@ -68,7 +68,7 @@ fun CartScreen(
                 ) {
                     items(cartItems) { item ->
                         CartItemCard(item) { id ->
-                            vm.removeFromCart(id)
+                            viewModel.removeFromCart(id)
                         }
                     }
                 }

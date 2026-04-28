@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
     id("com.google.gms.google-services")
     kotlin("kapt")
 }
@@ -43,11 +44,8 @@ android {
 
     buildFeatures {
         compose = true
-        viewBinding = true
-    }
-    
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        // Compose-first UI; keep ViewBinding off unless you still need XML screens.
+        viewBinding = false
     }
 }
 
@@ -66,7 +64,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.activity:activity-compose:1.8.1")
+    implementation("androidx.activity:activity-compose:1.13.0")
     
     // Compose Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
@@ -77,7 +75,11 @@ dependencies {
     
     // Coil for image loading in Compose (replaces Glide)
     implementation("io.coil-kt:coil-compose:2.6.0")
-    
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     // Compose debugging
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
