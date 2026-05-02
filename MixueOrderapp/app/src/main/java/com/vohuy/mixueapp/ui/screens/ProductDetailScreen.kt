@@ -13,16 +13,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
+import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
+import com.vohuy.mixueapp.utils.formatPrice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     navController: NavController,
-    productId: String
+    productId: String,
+    productViewModel: ProductViewModel? = null,
+    cartViewModel: CartViewModel? = null,
 ) {
-    // TODO: Fetch product from viewmodel using productId
+    val productVm = productViewModel ?: viewModel<ProductViewModel>()
+    val cartVm = cartViewModel ?: viewModel<CartViewModel>()
+
+    // Load product by id once when entering screen / when id changes
+    LaunchedEffect(productId) {
+        if (productId.isNotBlank()) {
+            productVm.loadProductById(productId)
+        }
+    }
+
+    val product by productVm.selectedProduct.observeAsState(null)
     var quantity by remember { mutableStateOf(1) }
 
     Scaffold(
@@ -47,9 +64,17 @@ fun ProductDetailScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            if (product == null) {
+                Text(
+                    text = "Đang tải sản phẩm...",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Product Image
             AsyncImage(
-                model = "", // TODO: Replace with product.imageUrl
+                model = product?.imageUrl.orEmpty(),
                 contentDescription = "Product Image",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -61,7 +86,7 @@ fun ProductDetailScreen(
 
             // Product Name
             Text(
-                "Trà Sữa Nha Đam",
+                product?.name ?: "",
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -69,7 +94,7 @@ fun ProductDetailScreen(
 
             // Product Price
             Text(
-                "35,000 ₫",
+                (product?.price ?: 0.0).formatPrice(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -83,7 +108,7 @@ fun ProductDetailScreen(
             )
 
             Text(
-                "Trà sữa Mixue với nha đam tươi, vị ngon và mát, giải khát hoàn hảo cho hè.",
+                product?.description ?: "",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -123,12 +148,17 @@ fun ProductDetailScreen(
             // Add to Cart Button
             Button(
                 onClick = {
-                    // TODO: Implement add to cart
-                    navController.popBackStack()
+                    val p = product
+                    if (p != null) {
+                        cartVm.addItem(p, quantity)
+                        navController.navigate("cart")
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                ,
+                enabled = product != null
             ) {
                 Text("Thêm Vào Giỏ Hàng")
             }

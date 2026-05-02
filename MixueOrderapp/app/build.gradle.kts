@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("com.google.gms.google-services")
-    kotlin("kapt")
 }
 
 import java.util.Properties
@@ -102,7 +101,6 @@ dependencies {
     
     // Coil for image loading in Compose (replaces Glide)
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation(libs.firebase.auth)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)

@@ -18,7 +18,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
+import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.utils.formatPrice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +31,28 @@ fun CartScreen(
     viewModel: CartViewModel = viewModel()
 ) {
     val cartItems by viewModel.cartItems.observeAsState(emptyList())
-    val totalPrice by viewModel.totalPrice.observeAsState(0L)
+    val totalPrice by viewModel.totalPrice.observeAsState(0.0)
+
+    val authVm: AuthViewModel = viewModel()
+    val orderVm: OrderViewModel = viewModel()
+
+    val currentUser by authVm.currentUser.observeAsState()
+    val createdOrderId by orderVm.createdOrderId.observeAsState()
+    val orderSuccess by orderVm.successMessage.observeAsState()
+    val orderError by orderVm.errorMessage.observeAsState()
+
+    // Ensure current user is fetched (covers cold start)
+    LaunchedEffect(Unit) {
+        authVm.fetchCurrentUser()
+    }
+
+    // On successful checkout -> clear cart and go to order history
+    LaunchedEffect(createdOrderId, orderSuccess) {
+        if (!createdOrderId.isNullOrBlank()) {
+            viewModel.clearCart()
+            navController.navigate(Routes.ORDER_HISTORY)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -93,7 +118,7 @@ fun CartScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
-                            "$totalPrice ₫",
+                            totalPrice.formatPrice(),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -101,14 +126,27 @@ fun CartScreen(
 
                     Button(
                         onClick = {
-                            // TODO: Implement checkout
-                            navController.navigate("order_history")
+                            val uid = currentUser?.id
+                            if (uid.isNullOrBlank()) {
+                                orderVm.setError("Bạn cần đăng nhập để thanh toán")
+                            } else {
+                                orderVm.createOrder(uid, cartItems)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                     ) {
                         Text("Thanh Toán")
+                    }
+
+                    if (!orderError.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = orderError ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
@@ -148,11 +186,11 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "SL: ${item.quantity} x ${item.price} ₫",
+                    "SL: ${item.quantity} x ${item.pricePerUnit.formatPrice()}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    "Thành tiền: ${item.quantity * item.price} ₫",
+                    "Thành tiền: ${(item.quantity * item.pricePerUnit).formatPrice()}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

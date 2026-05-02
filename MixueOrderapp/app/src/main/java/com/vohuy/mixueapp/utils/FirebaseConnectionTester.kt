@@ -148,7 +148,7 @@ object FirebaseConnectionTester {
             .limit(1)
             .get()
             .addOnSuccessListener { snapshot ->
-                Log.d(TAG, "✅ Collection '$collectionName': Readable (${snapshot.size} documents)")
+                Log.d(TAG, "✅ Collection '$collectionName': Readable (${snapshot.size()} documents)")
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "❌ Collection '$collectionName': Not accessible - ${e.message}")

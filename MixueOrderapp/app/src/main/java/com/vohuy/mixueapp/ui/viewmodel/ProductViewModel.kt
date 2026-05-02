@@ -24,6 +24,9 @@ class ProductViewModel : BaseViewModel() {
     private val _productsByCategory = MutableLiveData<List<Product>>()
     val productsByCategory: LiveData<List<Product>> = _productsByCategory
 
+    private val _createdProductId = MutableLiveData<String?>()
+    val createdProductId: LiveData<String?> = _createdProductId
+
     /**
      * Tải tất cả sản phẩm
      */
@@ -95,6 +98,46 @@ class ProductViewModel : BaseViewModel() {
                 is Result.Error -> {
                     setError(result.exception.message ?: "Không thể tải sản phẩm")
                 }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Phase 2: Create product + upload main image to Supabase.
+     */
+    fun createProductWithImage(
+        product: Product,
+        imageBytes: ByteArray,
+        contentType: String = "image/jpeg",
+    ) {
+        setLoading(true)
+        repository.createProductWithImage(product, imageBytes, contentType).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _createdProductId.value = result.data
+                    setSuccess("Tạo sản phẩm thành công")
+                }
+
+                is Result.Error -> setError(result.exception.message ?: "Không thể tạo sản phẩm")
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Phase 2: Update product image (upsert) to Supabase + update Firestore fields.
+     */
+    fun updateProductImage(
+        productId: String,
+        imageBytes: ByteArray,
+        contentType: String = "image/jpeg",
+    ) {
+        setLoading(true)
+        repository.updateProductImage(productId, imageBytes, contentType).observeForever { result ->
+            when (result) {
+                is Result.Success -> setSuccess("Cập nhật ảnh sản phẩm thành công")
+                is Result.Error -> setError(result.exception.message ?: "Không thể cập nhật ảnh")
                 is Result.Loading -> setLoading(true)
             }
         }

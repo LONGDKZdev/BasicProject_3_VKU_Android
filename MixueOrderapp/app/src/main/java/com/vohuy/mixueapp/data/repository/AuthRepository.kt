@@ -95,7 +95,14 @@ class AuthRepository : BaseRepository() {
         val userId = auth.currentUser?.uid
         if (userId != null) {
             fetchUserData(userId) { user ->
-                result.value = user
+                // Fallback: if Firestore user doc doesn't exist yet, still return minimal user.
+                result.value = user ?: User(
+                    id = userId,
+                    email = auth.currentUser?.email ?: "",
+                    fullName = "",
+                    role = Constants.ROLE_USER,
+                    createdAt = System.currentTimeMillis(),
+                )
             }
         } else {
             result.value = null

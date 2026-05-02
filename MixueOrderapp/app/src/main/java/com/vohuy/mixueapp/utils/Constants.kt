@@ -25,6 +25,7 @@ object Constants {
     const val FIELD_PRODUCT_DESCRIPTION = "description"
     const val FIELD_PRODUCT_PRICE = "price"
     const val FIELD_PRODUCT_IMAGE_URL = "imageUrl"
+    const val FIELD_PRODUCT_IMAGE_PATH = "imagePath"
     const val FIELD_PRODUCT_CATEGORY = "category"
     const val FIELD_PRODUCT_AVAILABLE = "available"
 

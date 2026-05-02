@@ -1,7 +1,6 @@
 package com.vohuy.mixueapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import com.vohuy.mixueapp.ui.theme.MixueOrderAppTheme
 import com.vohuy.mixueapp.ui.navigation.NavGraph
-import com.vohuy.mixueapp.utils.FirebaseConnectionTester
+import com.vohuy.mixueapp.utils.FirebaseHealthCheck
 
 /**
  * MainActivity - Activity chính quản lý Compose navigation
@@ -22,9 +21,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Test Firebase connections
-        FirebaseConnectionTester.testAllConnections()
-        Log.d("MainActivity", FirebaseConnectionTester.getConnectionStatus())
+        // Test Firebase connections (debug only)
+        if (BuildConfig.DEBUG) {
+            FirebaseHealthCheck.runAll()
+        }
         
         setContent {
             MixueOrderAppTheme {

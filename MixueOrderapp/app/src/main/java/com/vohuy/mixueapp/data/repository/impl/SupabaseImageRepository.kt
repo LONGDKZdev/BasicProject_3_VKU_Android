@@ -52,13 +52,17 @@ class SupabaseImageRepository : ImageRepository {
             path = path,
             data = bytes,
             upsert = true,
-        ) {
-            this.contentType = contentType
-        }
+        )
 
         // Public URL format:
-        // {SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}
-        val publicUrl = "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/$bucket/$path"
+        // https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+        // Users may accidentally provide the REST endpoint (..../rest/v1/) instead of the base URL.
+        val baseUrl = BuildConfig.SUPABASE_URL
+            .trimEnd('/')
+            .removeSuffix("/rest/v1")
+            .removeSuffix("/rest/v1/")
+
+        val publicUrl = "$baseUrl/storage/v1/object/public/$bucket/$path"
 
         return ImageRepository.ImageInfo(
             publicUrl = publicUrl,

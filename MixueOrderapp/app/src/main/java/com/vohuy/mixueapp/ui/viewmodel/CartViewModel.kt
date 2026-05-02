@@ -34,10 +34,12 @@ class CartViewModel : BaseViewModel() {
             // Thêm sản phẩm mới vào giỏ
             currentItems.add(
                 OrderItem(
+                    id = product.id,
                     productId = product.id,
                     productName = product.name,
                     quantity = quantity,
-                    pricePerUnit = product.price
+                    pricePerUnit = product.price,
+                    productImage = product.imageUrl,
                 )
             )
         }

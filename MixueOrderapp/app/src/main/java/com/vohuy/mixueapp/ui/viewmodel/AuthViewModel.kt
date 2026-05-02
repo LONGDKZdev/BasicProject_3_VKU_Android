@@ -19,6 +19,11 @@ class AuthViewModel : BaseViewModel() {
     val currentUser: LiveData<User?> = _currentUser
 
     /**
+     * Helper for navigation: check current FirebaseAuth state.
+     */
+    fun repositoryIsUserLoggedIn(): Boolean = repository.isUserLoggedIn()
+
+    /**
      * Đăng ký người dùng mới
      */
     fun registerUser(email: String, password: String, fullName: String) {

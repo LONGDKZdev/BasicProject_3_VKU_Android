@@ -5,19 +5,38 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel: AuthViewModel? = null,
+) {
+    val vm = viewModel ?: viewModel<AuthViewModel>()
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+
+    val isLoading by vm.isLoading.observeAsState(false)
+    val currentUser by vm.currentUser.observeAsState()
+    val errorMessage by vm.errorMessage.observeAsState()
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.REGISTER) { inclusive = true }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -77,10 +96,7 @@ fun RegisterScreen(navController: NavController) {
 
         Button(
             onClick = {
-                // TODO: Implement register logic
-                navController.navigate("home") {
-                    popUpTo("register") { inclusive = true }
-                }
+                vm.registerUser(email.trim(), password, name.trim())
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,6 +116,15 @@ fun RegisterScreen(navController: NavController) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (!errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
 
         TextButton(onClick = {
             navController.popBackStack()

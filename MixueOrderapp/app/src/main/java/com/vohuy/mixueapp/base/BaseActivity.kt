@@ -1,34 +1,32 @@
 package com.vohuy.mixueapp.base
 
-import android.app.ProgressDialog
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.viewbinding.ViewBinding
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 /**
- * Abstract BaseActivity - Quản lý ViewBinding, Toast, Loading progressively
- * Tất cả Activity phải kế thừa lớp này để tự động có: ViewBinding, Toast, ProgressDialog
- * DRY Principle: Không cần viết lại logic ViewBinding, Toast ở từng Activity
+ * BaseActivity
+ *
+ * Project này là 100% Jetpack Compose, vì vậy không dùng ViewBinding / setContentView.
+ * Lớp này giữ lại các tiện ích chung như Toast và trạng thái loading.
  */
-abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
+abstract class BaseActivity : ComponentActivity() {
 
-    protected lateinit var binding: VB
-    private var progressDialog: ProgressDialog? = null
+    /**
+     * Compose-friendly loading state that screens can observe.
+     * You can wire this into a global LoadingDialog inside setContent if needed.
+     */
+    var isLoading: Boolean by mutableStateOf(false)
+        private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = inflateBinding(layoutInflater)
-        setContentView(binding.root)
         setupUI()
         observeViewModel()
     }
-
-    /**
-     * Abstract method để inflate ViewBinding cho từng Activity
-     * Mỗi Activity con sẽ implement để trả về binding của nó
-     */
-    abstract fun inflateBinding(inflater: android.view.LayoutInflater): VB
 
     /**
      * Setup UI elements (buttons, listeners, etc.)
@@ -43,25 +41,17 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
     open fun observeViewModel() {}
 
     /**
-     * Hiển thị ProgressDialog loading
+     * Show global loading state.
      */
-    fun showLoading(message: String = "Đang tải...") {
-        if (progressDialog == null) {
-            progressDialog = ProgressDialog(this)
-        }
-        progressDialog?.apply {
-            setMessage(message)
-            setCancelable(false)
-            show()
-        }
+    fun showLoading() {
+        isLoading = true
     }
 
     /**
-     * Ẩn ProgressDialog loading
+     * Hide global loading state.
      */
     fun hideLoading() {
-        progressDialog?.dismiss()
-        progressDialog = null
+        isLoading = false
     }
 
     /**
@@ -69,11 +59,6 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
      */
     fun showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, message, duration).show()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        hideLoading()
     }
 }
 

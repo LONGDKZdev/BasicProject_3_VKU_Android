@@ -1,10 +1,10 @@
 package com.vohuy.mixueapp.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,7 +18,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.vohuy.mixueapp.data.model.Product
+import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.HomeViewModel
+import com.vohuy.mixueapp.utils.formatPrice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +37,12 @@ fun HomeScreen(
                 title = { Text("Mixue - Trà Sữa") },
                 actions = {
                     IconButton(onClick = {
-                        navController.navigate("cart")
+                        navController.navigate(Routes.ADMIN_ADD_PRODUCT)
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "Thêm sản phẩm (Admin)")
+                    }
+                    IconButton(onClick = {
+                        navController.navigate(Routes.CART)
                     }) {
                         Icon(Icons.Default.ShoppingCart, contentDescription = "Giỏ Hàng")
                     }
@@ -52,7 +59,7 @@ fun HomeScreen(
         ) {
             items(products) { product ->
                 ProductCard(product) {
-                    navController.navigate("product_detail/${product.id}")
+                    navController.navigate(Routes.productDetail(product.id))
                 }
             }
         }
@@ -62,9 +69,9 @@ fun HomeScreen(
 @Composable
 fun ProductCard(product: Product, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -105,7 +112,7 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
                 )
 
                 Text(
-                    "${product.price} ₫",
+                    product.price.formatPrice(),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary
                 )

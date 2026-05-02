@@ -5,17 +5,36 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(
+    navController: NavController,
+    viewModel: AuthViewModel? = null,
+) {
+    val vm = viewModel ?: viewModel<AuthViewModel>()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    val isLoading by vm.isLoading.observeAsState(false)
+    val currentUser by vm.currentUser.observeAsState()
+    val errorMessage by vm.errorMessage.observeAsState()
+
+    // Navigate when login succeeds
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.LOGIN) { inclusive = true }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -54,10 +73,7 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                // TODO: Implement login logic
-                navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
-                }
+                vm.loginUser(email.trim(), password)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -76,8 +92,17 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (!errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         TextButton(onClick = {
-            navController.navigate("register")
+            navController.navigate(Routes.REGISTER)
         }) {
             Text("Chưa có tài khoản? Đăng ký")
         }

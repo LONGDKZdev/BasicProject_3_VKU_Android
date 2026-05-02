@@ -8,11 +8,9 @@
     <application
         android:name=".MixueApp"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:label="@string/app_name"
+        android:label="MixueOrderApp"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MixueOrderApp">
+        android:theme="@android:style/Theme.DeviceDefault">
 
         <activity
             android:name=".MainActivity"
