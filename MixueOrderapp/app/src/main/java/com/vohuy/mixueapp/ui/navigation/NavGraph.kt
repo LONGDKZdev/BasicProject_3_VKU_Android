@@ -2,7 +2,6 @@ package com.vohuy.mixueapp.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,23 +33,27 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.REGISTER) { RegisterScreen(navController, authVm) }
         composable(Routes.HOME) { entry ->
             // Shared VMs scoped to HOME graph (so Cart and ProductDetail can share same cart)
-            val cartVm: CartViewModel = viewModel(entry)
+            viewModel<CartViewModel>(entry)
             HomeScreen(navController)
         }
 
         composable(Routes.CART) {
-            val parentEntry = remember(navController) { navController.getBackStackEntry(Routes.HOME) }
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                navController.getBackStackEntry(Routes.HOME)
+            }
             val cartVm: CartViewModel = viewModel(parentEntry)
             CartScreen(navController, cartVm)
         }
         composable(Routes.ORDER_HISTORY) { OrderHistoryScreen(navController) }
 
         // Phase 2: Admin create product + upload image to Supabase
-        composable(Routes.ADMIN_ADD_PRODUCT) { com.vohuy.mixueapp.ui.screens.admin.AdminAddProductScreen(navController) }
+        composable(Routes.ADMIN_ADD_PRODUCT) { AdminAddProductScreen(navController) }
 
         composable(Routes.PRODUCT_DETAIL) { backStackEntry ->
             val productId = backStackEntry.arguments?.getString(Routes.PRODUCT_ID) ?: ""
-            val parentEntry = remember(navController) { navController.getBackStackEntry(Routes.HOME) }
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                navController.getBackStackEntry(Routes.HOME)
+            }
             val cartVm: CartViewModel = viewModel(parentEntry)
             val productVm: ProductViewModel = viewModel()
             ProductDetailScreen(

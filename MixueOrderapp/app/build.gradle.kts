@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,7 +7,6 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-import java.util.Properties
 
 android {
     namespace = "com.vohuy.mixueapp"
