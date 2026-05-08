@@ -2,6 +2,7 @@ package com.vohuy.mixueapp.ui.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import com.vohuy.mixueapp.base.BaseViewModel
 import com.vohuy.mixueapp.data.model.Product
 import com.vohuy.mixueapp.data.repository.ProductRepository
@@ -23,18 +24,24 @@ class HomeViewModel : BaseViewModel() {
 
     fun loadAllProducts() {
         setLoading(true)
-        repository.getAllProducts().observeForever { result ->
-            when (result) {
-                is Result.Success -> {
-                    _products.value = result.data
-                    setLoading(false)
+        val liveData = repository.getAllProducts()
+        val observer = object : Observer<Result<List<Product>>> {
+            override fun onChanged(value: Result<List<Product>>) {
+                when (value) {
+                    is Result.Success -> {
+                        _products.value = value.data
+                        setLoading(false)
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Error -> {
+                        setError(value.exception.message ?: "Không thể tải sản phẩm")
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Loading -> setLoading(true)
                 }
-                is Result.Error -> {
-                    setError(result.exception.message ?: "Không thể tải sản phẩm")
-                }
-                is Result.Loading -> setLoading(true)
             }
         }
+        liveData.observeForever(observer)
     }
 }
 

@@ -29,31 +29,25 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField(
-            "String",
-            "SUPABASE_URL",
-            "\"${localProperties.getProperty("SUPABASE_URL", "") }\""
-        )
-        buildConfigField(
-            "String",
-            "SUPABASE_ANON_KEY",
-            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "") }\""
-        )
-        buildConfigField(
-            "String",
-            "SUPABASE_BUCKET",
-            "\"${localProperties.getProperty("SUPABASE_BUCKET", "") }\""
-        )
-    }
+        // Supabase (Storage) keys
+        // Priority:
+        // 1) local.properties (recommended)
+        // 2) hardcoded fallback (LOCAL-ONLY) to keep this workspace runnable even if local.properties is missing.
+        val supabaseUrl = localProperties.getProperty("SUPABASE_URL")
+            ?.takeIf { it.isNotBlank() }
+            ?: "https://vqupigbrkuucghnauwrb.supabase.co"
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
+        val supabaseAnonKey = localProperties.getProperty("SUPABASE_ANON_KEY")
+            ?.takeIf { it.isNotBlank() }
+            ?: "sb_publishable_hJjVJNHKhXvwIT17Goi0Cw_4w3AQE9y"
+
+        val supabaseBucket = localProperties.getProperty("SUPABASE_BUCKET")
+            ?.takeIf { it.isNotBlank() }
+            ?: "StorageImage_MixueAndroid"
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "SUPABASE_BUCKET", "\"$supabaseBucket\"")
     }
 
     compileOptions {
@@ -85,7 +79,9 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     
     // Jetpack Compose Dependencies
-    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
+    // Use a more recent Compose BOM to avoid Indication/clickable incompatibilities
+    // (e.g. crash: 'clickable only supports IndicationNodeFactory... PlatformRipple').
+    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")

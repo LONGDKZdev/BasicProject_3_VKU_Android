@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    // Users profile
+    match /users/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow read, update, delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // Products: readable to everyone; admin-only write
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Orders: user can create & read own orders; admin can read/update all
+    match /orders/{orderId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Healthcheck: per-user doc access; admin can read all
+    match /healthcheck/{docId} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+  }
+}
+

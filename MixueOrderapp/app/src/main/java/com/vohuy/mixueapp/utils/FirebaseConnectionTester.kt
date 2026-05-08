@@ -31,8 +31,9 @@ object FirebaseConnectionTester {
         val firestore = FirebaseFirestore.getInstance()
         
         try {
+            val docId = "test_${System.currentTimeMillis()}"
             firestore.collection("test_connection")
-                .document("test_${System.currentTimeMillis()}")
+                .document(docId)
                 .set(mapOf(
                     "timestamp" to System.currentTimeMillis(),
                     "status" to "testing",
@@ -42,7 +43,7 @@ object FirebaseConnectionTester {
                     Log.d(TAG, "✅ FIRESTORE: Connection SUCCESS")
                     // Xóa document test
                     firestore.collection("test_connection")
-                        .document("test_${System.currentTimeMillis()}")
+                        .document(docId)
                         .delete()
                 }
                 .addOnFailureListener { e ->

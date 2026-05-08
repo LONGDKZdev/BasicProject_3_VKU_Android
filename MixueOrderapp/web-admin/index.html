@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mixue Admin</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand__title">Mixue Admin</div>
+        <div class="brand__sub">Admin console (Firebase Firestore)</div>
+      </div>
+
+      <div class="userbar">
+        <div id="userInfo" class="userbar__info">Chưa đăng nhập</div>
+        <button id="btnLogout" class="btn btn--ghost" disabled>Đăng xuất</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card" id="cardLogin">
+        <h2>Đăng nhập Admin</h2>
+        <p class="muted">
+          Đăng nhập bằng <b>Firebase Auth</b>. Quyền admin lấy từ <code>users/{uid}.role = ADMIN</code>.
+        </p>
+        <form id="loginForm" class="form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Mật khẩu
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="row">
+            <button class="btn" type="submit" id="btnLogin">Đăng nhập</button>
+            <button class="btn btn--ghost" type="button" id="btnSendVerify" disabled>Gửi email xác minh</button>
+          </div>
+        </form>
+
+        <div id="verifyHint" class="muted small" style="margin-top: 8px;"></div>
+
+        <div class="row" style="margin-top: 10px; justify-content: space-between;">
+          <div class="muted small">Admin mới?</div>
+          <button id="btnToggleRegister" class="btn btn--ghost" type="button">Nhập mã mời Admin</button>
+        </div>
+
+        <form id="registerForm" class="form hidden" style="margin-top: 10px;">
+          <label>
+            Mã mời Admin
+            <input id="adminInviteCode" placeholder="VD: MIXUE-ADMIN-2026" required />
+          </label>
+          <div class="row">
+            <button class="btn" type="submit" id="btnRegister">Xác nhận</button>
+          </div>
+          <p class="muted small">
+            Mã mời dùng để xác thực quyền truy cập web-admin. Tài khoản vẫn đăng nhập bằng Firebase Auth.
+          </p>
+        </form>
+      </section>
+
+      <section class="card hidden" id="cardRole">
+        <h2>Quyền hiện tại</h2>
+        <div class="kv">
+          <div class="kv__k">UID</div>
+          <div class="kv__v" id="kvUid">-</div>
+          <div class="kv__k">Email</div>
+          <div class="kv__v" id="kvEmail">-</div>
+          <div class="kv__k">Role</div>
+          <div class="kv__v"><span id="kvRole" class="pill">-</span></div>
+        </div>
+      </section>
+
+      <section class="card hidden" id="cardHealth">
+        <h2>Healthcheck / Seed</h2>
+        <p class="muted">
+          Khu vực này để test nhanh (tuỳ chọn). Nếu cần seed/healthcheck thật, sẽ implement sau.
+        </p>
+        <div class="row">
+          <button class="btn" id="btnRunHealth">Chạy healthcheck</button>
+          <button class="btn btn--ghost" id="btnSeedProducts">Seed 3 products mẫu</button>
+          <button class="btn btn--ghost" id="btnClearLog">Clear log</button>
+        </div>
+        <pre id="healthLog" class="log"></pre>
+      </section>
+
+      <section class="card hidden" id="cardNotAdmin">
+        <h2>Không có quyền truy cập</h2>
+        <p class="muted">
+          Tài khoản của bạn không phải <b>ADMIN</b>. Web này chỉ dành cho admin.
+          Hãy liên hệ người quản trị để gán role: <code>users/{uid}.role = ADMIN</code>.
+        </p>
+      </section>
+
+      <section class="card hidden" id="cardAdmin">
+        <h2>Admin Console</h2>
+        <div class="tabs">
+          <button class="tab tab--active" data-tab="products">Products</button>
+          <button class="tab" data-tab="orders">Orders</button>
+        </div>
+
+        <div class="tabpane" id="tab-products">
+          <div class="row row--space">
+            <div>
+              <div class="muted">Collection: <code>products</code></div>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnReloadProducts">Reload</button>
+            </div>
+          </div>
+
+          <form id="productForm" class="form form--grid">
+            <label>
+              ID (để trống = tự sinh)
+              <input id="p_id" placeholder="p01" />
+            </label>
+            <label>
+              Tên
+              <input id="p_name" required />
+            </label>
+            <label>
+              Giá
+              <input id="p_price" type="number" min="0" step="1000" required />
+            </label>
+            <label>
+              Category
+              <input id="p_category" placeholder="Kem / Trà Sữa / Nước" required />
+            </label>
+            <label class="span2">
+              Description
+              <input id="p_description" />
+            </label>
+            <label>
+              Available
+              <select id="p_available">
+                <option value="true" selected>true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+            <label class="span2">
+              Image URL (optional)
+              <input id="p_imageUrl" placeholder="https://..." />
+            </label>
+
+            <label class="span2">
+              Upload ảnh (Supabase)
+              <input id="p_imageFile" type="file" accept="image/*" />
+              <span class="muted small">Chọn ảnh → upload → URL sẽ tự điền vào ô Image URL.</span>
+            </label>
+            <div class="row span2">
+              <button class="btn btn--ghost" type="button" id="btnUploadImage">Upload ảnh</button>
+              <span class="muted small" id="uploadStatus"></span>
+            </div>
+            <div class="row span2">
+              <button class="btn" type="submit" id="btnSaveProduct">Create/Update</button>
+              <button class="btn btn--ghost" type="button" id="btnResetProduct">Reset</button>
+            </div>
+          </form>
+
+          <div class="tablewrap">
+            <table class="table" id="productsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Category</th>
+                  <th>Available</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpane hidden" id="tab-orders">
+          <div class="row row--space">
+            <div>
+              <div class="muted">Collection: <code>orders</code></div>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnReloadOrders">Reload</button>
+            </div>
+          </div>
+          <div class="tablewrap">
+            <table class="table" id="ordersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>UserId</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>CreatedAt</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <div class="muted small">Serve bằng HTTP (localhost). Dữ liệu đồng bộ trực tiếp với Firebase Firestore.</div>
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.vohuy.mixueapp.ui.theme.MixueOrderAppTheme
 import com.vohuy.mixueapp.ui.navigation.NavGraph
 import com.vohuy.mixueapp.utils.FirebaseHealthCheck
+import com.vohuy.mixueapp.utils.FirestoreSampleDataSeeder
 
 /**
  * MainActivity - Activity chính quản lý Compose navigation
@@ -24,6 +25,11 @@ class MainActivity : ComponentActivity() {
         // Test Firebase connections (debug only)
         if (BuildConfig.DEBUG) {
             FirebaseHealthCheck.runAll()
+
+            // Optional: seed sample products so the Home screen can show data immediately.
+            // Comment out if you don't want automatic writes on startup.
+            FirestoreSampleDataSeeder.seedProducts()
+            FirestoreSampleDataSeeder.verifyProductsReadable()
         }
         
         setContent {

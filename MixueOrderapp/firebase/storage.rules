@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    // Healthcheck folder to validate Storage works
+    match /healthcheck/{uid}/{allPaths=**} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
