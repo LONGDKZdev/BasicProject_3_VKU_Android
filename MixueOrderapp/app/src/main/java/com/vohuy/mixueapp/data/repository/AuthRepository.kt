@@ -34,12 +34,15 @@ class AuthRepository : BaseRepository() {
                     createdAt = System.currentTimeMillis()
                 )
 
+                authResult.user?.sendEmailVerification()
+
                 // Lưu thông tin user vào Firestore
                 firestore.collection(Constants.COLLECTION_USERS)
                     .document(userId)
                     .set(user)
                     .addOnSuccessListener {
                         result.value = Result.Success(user)
+                        auth.signOut()
                     }
                     .addOnFailureListener { exception ->
                         result.value = Result.Error(exception as Exception)
@@ -66,16 +69,22 @@ class AuthRepository : BaseRepository() {
 
         auth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener { authResult ->
-                val userId = authResult.user?.uid ?: ""
-                fetchUserData(userId) { user ->
-                    if (user != null) {
-                        result.value = Result.Success(user)
-                    } else {
-                        result.value = Result.Error(Exception("Không thể lấy thông tin người dùng"))
+                if (authResult.user?.isEmailVerified == true) {
+                    val userId = authResult.user?.uid ?: ""
+                    fetchUserData(userId) { user ->
+                        if (user != null) {
+                            result.value = Result.Success(user)
+                        } else {
+                            result.value = Result.Error(Exception("Không thể lấy thông tin người dùng"))
+                        }
                     }
+                } else {
+                    auth.signOut() // Chưa verify thì đá ra ngoài
+                    result.value = Result.Error(Exception("Vui lòng kiểm tra hộp thư và xác minh Email trước khi đăng nhập!"))
                 }
             }
             .addOnFailureListener { exception ->
+                // ... (Giữ nguyên phần xử lý lỗi của bạn)
                 val errorMessage = if (exception is FirebaseAuthException) {
                     ErrorHandler.getAuthErrorMessage(exception.errorCode)
                 } else {

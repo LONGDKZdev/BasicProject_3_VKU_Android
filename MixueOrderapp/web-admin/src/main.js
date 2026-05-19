@@ -3,6 +3,8 @@ import { authService } from "./services/authService.js";
 import { productsService } from "./services/productsService.js";
 import { ordersService } from "./services/ordersService.js";
 import { uploadProductImage } from "./supabase.js";
+import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
+import { seedAll } from "./services/seedService.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,16 +12,16 @@ const els = {
   // header
   userInfo: $("userInfo"),
   btnLogout: $("btnLogout"),
-  // login
+  // login (ĐÃ CẬP NHẬT CÁC ID MỚI ĐỂ CHUYỂN TAB)
   cardLogin: $("cardLogin"),
-  loginForm: $("loginForm"),
+  authForm: $("authForm"),
   email: $("email"),
   password: $("password"),
+  btnSubmitAuth: $("btnSubmitAuth"),
   btnSendVerify: $("btnSendVerify"),
   verifyHint: $("verifyHint"),
-  btnToggleRegister: $("btnToggleRegister"),
-  registerForm: $("registerForm"),
-  adminInviteCode: $("adminInviteCode"),
+  tabModeLogin: $("tabModeLogin"),
+  tabModeRegister: $("tabModeRegister"),
   // role
   cardRole: $("cardRole"),
   kvUid: $("kvUid"),
@@ -58,19 +60,7 @@ const els = {
   ordersTable: $("ordersTable"),
 };
 
-// --- Simple web-admin gate (local-only) ---
-// This is NOT a replacement for Firestore security rules.
-// It only prevents casual access to the admin UI.
-const ADMIN_INVITE_CODE = "MIXUE-ADMIN-2026";
-const ADMIN_GATE_KEY = "mixue_admin_gate_ok";
-
-function isGatePassed() {
-  return localStorage.getItem(ADMIN_GATE_KEY) === "1";
-}
-
-function setGatePassed(ok) {
-  localStorage.setItem(ADMIN_GATE_KEY, ok ? "1" : "0");
-}
+// (ĐÃ XÓA: ADMIN_INVITE_CODE và các hàm isGatePassed, setGatePassed)
 
 function setHidden(el, hidden) {
   if (!el) return;
@@ -131,6 +121,8 @@ async function refreshProductsTable() {
       els.p_description.value = current.description ?? "";
       els.p_available.value = String(Boolean(current.available));
       els.p_imageUrl.value = current.imageUrl ?? "";
+      // Preserve imagePath so updating other fields won't wipe it.
+      els.p_imageUrl.dataset.path = current.imagePath ?? "";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -142,31 +134,42 @@ async function refreshProductsTable() {
   };
 }
 
-async function refreshOrdersTable() {
-  const tbody = els.ordersTable.querySelector("tbody");
-  tbody.innerHTML = "";
+let unsubOrders = null; // Biến giữ kết nối Real-time để hủy khi cần
 
-  const items = await ordersService.listOrders(50);
-  for (const o of items) {
-    const created = o.createdAt ? new Date(o.createdAt).toISOString() : "";
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><code>${escapeHtml(o.id ?? "")}</code></td>
-      <td><code>${escapeHtml(o.userId ?? "")}</code></td>
-      <td>${escapeHtml(String(o.totalPrice ?? ""))}</td>
-      <td>
-        <select data-act="status" data-id="${escapeAttr(o.id ?? "")}">
-          ${["PENDING","CONFIRMED","DELIVERING","DONE","CANCELLED"].map((s) => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("")}
-        </select>
-      </td>
-      <td>${escapeHtml(created)}</td>
-      <td>
-        <button class="btn btn--ghost" data-act="save" data-id="${escapeAttr(o.id ?? "")}">Save</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+function refreshOrdersTable() {
+  const tbody = els.ordersTable.querySelector("tbody");
+
+  // Nếu đang có kết nối cũ thì hủy đi trước khi tạo mới
+  if (unsubOrders) {
+    unsubOrders();
   }
 
+  // Khởi tạo luồng lắng nghe Real-time
+  unsubOrders = ordersService.listenOrders(50, (items) => {
+    tbody.innerHTML = ""; // Xóa bảng cũ
+
+    for (const o of items) {
+      const created = o.createdAt ? new Date(o.createdAt).toISOString() : "";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><code>${escapeHtml(o.id ?? "")}</code></td>
+        <td><code>${escapeHtml(o.userId ?? "")}</code></td>
+        <td>${escapeHtml(String(o.totalPrice ?? ""))}</td>
+        <td>
+          <select data-act="status" data-id="${escapeAttr(o.id ?? "")}">
+            ${["PENDING","CONFIRMED","DELIVERING","DONE","CANCELLED"].map((s) => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </td>
+        <td>${escapeHtml(created)}</td>
+        <td>
+          <button class="btn btn--ghost" data-act="save" data-id="${escapeAttr(o.id ?? "")}">Save</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
+
+  // Sự kiện bấm nút Save trạng thái
   tbody.onclick = async (ev) => {
     const btn = ev.target.closest("button");
     if (!btn) return;
@@ -209,14 +212,42 @@ els.btnLogout.onclick = async () => {
   await authService.logout();
 };
 
-els.loginForm.onsubmit = async (ev) => {
-  ev.preventDefault();
-  try {
-    await authService.login(els.email.value.trim(), els.password.value);
-  } catch (e) {
-    alert(e?.message ?? String(e));
-  }
-};
+// --- LOGIC XỬ LÝ TAB & FORM MỚI ---
+let isLoginMode = true;
+
+if (els.tabModeLogin && els.tabModeRegister) {
+  els.tabModeLogin.onclick = () => {
+    isLoginMode = true;
+    els.tabModeLogin.classList.add("tab--active");
+    els.tabModeRegister.classList.remove("tab--active");
+    els.btnSubmitAuth.textContent = "Đăng nhập";
+  };
+
+  els.tabModeRegister.onclick = () => {
+    isLoginMode = false;
+    els.tabModeRegister.classList.add("tab--active");
+    els.tabModeLogin.classList.remove("tab--active");
+    els.btnSubmitAuth.textContent = "Đăng ký";
+  };
+}
+
+if (els.authForm) {
+  els.authForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      if (isLoginMode) {
+        await authService.login(els.email.value.trim(), els.password.value);
+      } else {
+        await authService.register(els.email.value.trim(), els.password.value);
+        alert(
+          "Đăng ký thành công! Tài khoản admin đã được tạo, nhưng bạn cần XÁC MINH EMAIL trước khi vào Admin Console. Hãy kiểm tra Inbox/Spam."
+        );
+      }
+    } catch (e) {
+      alert(e?.message ?? String(e));
+    }
+  };
+}
 
 els.btnSendVerify.onclick = async () => {
   try {
@@ -231,27 +262,6 @@ els.btnSendVerify.onclick = async () => {
   }
 };
 
-els.btnToggleRegister.onclick = () => {
-  const isHidden = els.registerForm.classList.contains("hidden");
-  setHidden(els.registerForm, !isHidden);
-  els.btnToggleRegister.textContent = isHidden ? "Ẩn" : "Nhập mã mời Admin";
-};
-
-els.registerForm.onsubmit = async (ev) => {
-  ev.preventDefault();
-  try {
-    const code = (els.adminInviteCode.value || "").trim();
-    if (code !== ADMIN_INVITE_CODE) throw new Error("Mã mời không đúng");
-    setGatePassed(true);
-    alert("✅ Xác thực admin OK. Trang sẽ tải lại để áp dụng quyền.");
-    setHidden(els.registerForm, true);
-    els.btnToggleRegister.textContent = "Nhập mã mời Admin";
-    location.reload();
-  } catch (e) {
-    alert(e?.message ?? String(e));
-  }
-};
-
 // Healthcheck/Seed are optional; not implemented in this minimal admin.
 els.btnRunHealth.onclick = async () => {
   clearLog();
@@ -260,8 +270,18 @@ els.btnRunHealth.onclick = async () => {
 };
 els.btnSeedProducts.onclick = async () => {
   clearLog();
-  logLine("Seed: not implemented in web-admin yet.");
-  logLine("Tip: Use Android debug seeder (FirestoreSampleDataSeeder) if needed.");
+  try {
+    const u = authService.getAuthUser();
+    if (!u) throw new Error("Chưa đăng nhập");
+    logLine("[Seed] Running...");
+    const res = await seedAll({ adminUid: u.uid });
+    logLine(`[Seed] OK. products=${res.productsCount}, orderId=${res.orderId}`);
+    await refreshProductsTable();
+    await refreshOrdersTable();
+  } catch (e) {
+    logLine(`[Seed] FAILED: ${e?.message ?? String(e)}`);
+    alert(e?.message ?? String(e));
+  }
 };
 els.btnClearLog.onclick = clearLog;
 
@@ -295,6 +315,7 @@ els.btnResetProduct.onclick = () => {
   els.p_description.value = "";
   els.p_available.value = "true";
   els.p_imageUrl.value = "";
+  els.p_imageUrl.dataset.path = "";
   if (els.p_imageFile) els.p_imageFile.value = "";
   if (els.uploadStatus) els.uploadStatus.textContent = "";
 };
@@ -314,8 +335,10 @@ els.btnUploadImage.onclick = async () => {
       els.p_id.value = productId;
     }
 
-    const { publicUrl } = await uploadProductImage({ file, productId });
+    const { publicUrl, path } = await uploadProductImage({ file, productId });
     els.p_imageUrl.value = publicUrl;
+    // keep for saving into Firestore
+    els.p_imageUrl.dataset.path = path;
     els.uploadStatus.textContent = "✅ Upload OK";
   } catch (e) {
     els.uploadStatus.textContent = "❌ Upload lỗi";
@@ -335,6 +358,7 @@ els.productForm.onsubmit = async (ev) => {
     description: els.p_description.value.trim(),
     available: els.p_available.value === "true",
     imageUrl: els.p_imageUrl.value.trim(),
+    imagePath: (els.p_imageUrl.dataset.path || "").trim() || undefined,
   };
   try {
     await productsService.upsertProduct(payload);
@@ -365,16 +389,25 @@ authService.listen(async (user) => {
   els.btnLogout.disabled = false;
   els.userInfo.textContent = `${user.email ?? "(no email)"}`;
 
+  // DEV convenience: if this uid is allowlisted, promote role to ADMIN (merge).
+  // This keeps the project smooth to demo without implementing invites yet.
+  try {
+    await bootstrapAdminIfAllowed({ uid: user.uid });
+  } catch {
+    // ignore bootstrap errors
+  }
+
   const role = await authService.getUserRole(user.uid);
 
   // Email verification UI
   if (user.emailVerified) {
     els.btnSendVerify.disabled = true;
-    if (els.verifyHint) els.verifyHint.textContent = "✅ Email đã xác minh";
+    if (els.verifyHint) els.verifyHint.textContent = "Email đã xác minh.";
   } else {
     els.btnSendVerify.disabled = false;
     if (els.verifyHint) {
-      els.verifyHint.textContent = "⚠️ Email chưa xác minh. Hãy bấm 'Gửi email xác minh' rồi kiểm tra inbox/spam.";
+      els.verifyHint.textContent =
+        "Bạn chưa xác minh email. Hãy bấm 'Gửi email xác minh' rồi kiểm tra Inbox/Spam. Sau khi xác minh, hãy đăng xuất/đăng nhập lại.";
     }
   }
 
@@ -389,8 +422,8 @@ authService.listen(async (user) => {
   // Require ALL:
   // - Email verified (Firebase Auth)
   // - Firestore role ADMIN (real security)
-  // - Local invite gate passed (extra simple protection)
-  if (user.emailVerified && role === ROLES.admin && isGatePassed()) {
+  // (ĐÃ XÓA ĐIỀU KIỆN LẮNG NGHE MÃ MỜI CŨ Ở ĐÂY)
+  if (user.emailVerified && role === ROLES.admin) {
     setHidden(els.cardAdmin, false);
     setHidden(els.cardNotAdmin, true);
     setHidden(els.cardHealth, false);
@@ -402,13 +435,18 @@ authService.listen(async (user) => {
     setHidden(els.cardNotAdmin, false);
     setHidden(els.cardHealth, true);
 
-    // Helpful hint for the most common reason
-    if (els.verifyHint && role !== ROLES.admin) {
-      els.verifyHint.textContent =
-        (user.emailVerified ? "✅ Email đã xác minh. " : "⚠️ Email chưa xác minh. ") +
-        "Tài khoản chưa có role ADMIN trong Firestore: users/{uid}.role = ADMIN";
+    // Helpful hint: most blocks are from unverified email (ADMIN is auto-granted on web register)
+    if (els.verifyHint) {
+      if (!user.emailVerified) {
+        els.verifyHint.textContent =
+          "Bạn bị chặn vì CHƯA XÁC MINH EMAIL. Hãy kiểm tra Inbox/Spam, bấm link xác minh, rồi đăng xuất/đăng nhập lại.";
+      } else if (role !== ROLES.admin) {
+        els.verifyHint.textContent =
+          "Email đã xác minh, nhưng Firestore role chưa phải ADMIN. Hãy kiểm tra: users/{uid}.role = ADMIN";
+      } else {
+        // Edge-case: verified + role admin but still blocked due to stale client state
+        els.verifyHint.textContent = "Nếu bạn vừa xác minh email, hãy thử đăng xuất/đăng nhập lại hoặc tải lại trang.";
+      }
     }
   }
 });
-
-

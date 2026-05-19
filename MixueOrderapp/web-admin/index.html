@@ -21,11 +21,18 @@
 
     <main class="container">
       <section class="card" id="cardLogin">
-        <h2>Đăng nhập Admin</h2>
+        <h2>Xác thực Admin</h2>
         <p class="muted">
-          Đăng nhập bằng <b>Firebase Auth</b>. Quyền admin lấy từ <code>users/{uid}.role = ADMIN</code>.
+          Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được gán quyền <b>ADMIN</b>
+          tự động — nhưng bạn <b>bắt buộc phải XÁC MINH EMAIL</b> trước khi vào Admin Console.
         </p>
-        <form id="loginForm" class="form">
+
+        <div class="tabs" style="margin-bottom: 16px;">
+          <button class="tab tab--active" id="tabModeLogin">Đăng nhập</button>
+          <button class="tab" id="tabModeRegister">Đăng ký</button>
+        </div>
+
+        <form id="authForm" class="form">
           <label>
             Email
             <input id="email" type="email" autocomplete="username" required />
@@ -35,30 +42,12 @@
             <input id="password" type="password" autocomplete="current-password" required />
           </label>
           <div class="row">
-            <button class="btn" type="submit" id="btnLogin">Đăng nhập</button>
+            <button class="btn" type="submit" id="btnSubmitAuth">Đăng nhập</button>
             <button class="btn btn--ghost" type="button" id="btnSendVerify" disabled>Gửi email xác minh</button>
           </div>
         </form>
 
         <div id="verifyHint" class="muted small" style="margin-top: 8px;"></div>
-
-        <div class="row" style="margin-top: 10px; justify-content: space-between;">
-          <div class="muted small">Admin mới?</div>
-          <button id="btnToggleRegister" class="btn btn--ghost" type="button">Nhập mã mời Admin</button>
-        </div>
-
-        <form id="registerForm" class="form hidden" style="margin-top: 10px;">
-          <label>
-            Mã mời Admin
-            <input id="adminInviteCode" placeholder="VD: MIXUE-ADMIN-2026" required />
-          </label>
-          <div class="row">
-            <button class="btn" type="submit" id="btnRegister">Xác nhận</button>
-          </div>
-          <p class="muted small">
-            Mã mời dùng để xác thực quyền truy cập web-admin. Tài khoản vẫn đăng nhập bằng Firebase Auth.
-          </p>
-        </form>
       </section>
 
       <section class="card hidden" id="cardRole">
@@ -89,8 +78,11 @@
       <section class="card hidden" id="cardNotAdmin">
         <h2>Không có quyền truy cập</h2>
         <p class="muted">
-          Tài khoản của bạn không phải <b>ADMIN</b>. Web này chỉ dành cho admin.
-          Hãy liên hệ người quản trị để gán role: <code>users/{uid}.role = ADMIN</code>.
+          Bạn chưa vào được Admin Console. Trong hầu hết trường hợp, nguyên nhân là bạn <b>chưa xác minh email</b>.
+          Hãy kiểm tra Inbox/Spam và bấm link xác minh, sau đó đăng xuất/đăng nhập lại.
+          <br />
+          Nếu bạn đã xác minh email mà vẫn bị chặn, hãy kiểm tra trong Firestore: <code>users/{uid}.role</code> phải là
+          <code>ADMIN</code>.
         </p>
       </section>
 

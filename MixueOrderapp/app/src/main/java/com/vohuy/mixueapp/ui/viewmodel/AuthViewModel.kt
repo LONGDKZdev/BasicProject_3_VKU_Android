@@ -18,6 +18,16 @@ class AuthViewModel : BaseViewModel() {
     private val _currentUser = MutableLiveData<User?>()
     val currentUser: LiveData<User?> = _currentUser
 
+    // UI state: Login/Register tabs are merged in LoginScreen.
+    private val _isLoginTab = MutableLiveData(true)
+    val isLoginTab: LiveData<Boolean> = _isLoginTab
+
+    fun setLoginTab(isLogin: Boolean) {
+        _isLoginTab.value = isLogin
+        // Clear old messages when switching modes
+        clearMessages()
+    }
+
     /**
      * Helper for navigation: check current FirebaseAuth state.
      */
@@ -31,8 +41,11 @@ class AuthViewModel : BaseViewModel() {
         repository.registerUser(email, password, fullName).observeForever { result ->
             when (result) {
                 is Result.Success -> {
-                    _currentUser.value = result.data
-                    setSuccess("Đăng ký thành công!")
+                    // Repository signs out after creating the account to enforce email verification.
+                    // Do NOT set _currentUser here, otherwise UI might navigate to HOME incorrectly.
+                    _currentUser.value = null
+                    setSuccess("Đăng ký thành công! Vui lòng kiểm tra Email để xác minh trước khi đăng nhập.")
+                    _isLoginTab.value = true
                 }
                 is Result.Error -> {
                     setError(result.exception.message ?: "Đăng ký thất bại")

@@ -1,6 +1,7 @@
 package com.vohuy.mixueapp.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -85,9 +87,17 @@ fun OrderHistoryScreen(
 
 @Composable
 fun OrderCard(order: Order) {
+    val chipScheme = MaterialTheme.colorScheme
+    val statusText = remember(order.status) { getStatusText(order.status) }
+    val (chipContainer, chipLabel) = remember(order.status, chipScheme) {
+        statusChipColors(order.status, chipScheme)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -104,7 +114,8 @@ fun OrderCard(order: Order) {
                 Column {
                     Text(
                         "Đơn #${order.id}",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -116,10 +127,15 @@ fun OrderCard(order: Order) {
 
                 AssistChip(
                     onClick = { },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = chipContainer,
+                        labelColor = chipLabel
+                    ),
                     label = {
                         Text(
-                            getStatusText(order.status),
-                            style = MaterialTheme.typography.labelSmall
+                            statusText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 )
@@ -146,11 +162,35 @@ fun OrderCard(order: Order) {
                 )
                 Text(
                     order.totalPrice.formatPrice(),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
         }
+    }
+}
+
+private fun statusChipColors(
+    status: String,
+    c: ColorScheme
+): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
+    // Keep to theme-derived colors; use subtle, readable containers.
+    return when (status) {
+        Constants.ORDER_STATUS_PENDING, Constants.ORDER_STATUS_DELIVERING ->
+            c.tertiaryContainer to c.onTertiaryContainer
+
+        Constants.ORDER_STATUS_DONE ->
+            c.primaryContainer to c.onPrimaryContainer
+
+        Constants.ORDER_STATUS_CANCELLED ->
+            c.errorContainer to c.onErrorContainer
+
+        Constants.ORDER_STATUS_CONFIRMED ->
+            c.secondaryContainer to c.onSecondaryContainer
+
+        else ->
+            c.surfaceVariant to c.onSurfaceVariant
     }
 }
 

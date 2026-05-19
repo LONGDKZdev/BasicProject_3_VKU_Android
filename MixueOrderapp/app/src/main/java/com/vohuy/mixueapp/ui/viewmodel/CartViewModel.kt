@@ -44,7 +44,7 @@ class CartViewModel : BaseViewModel() {
             )
         }
 
-        _cartItems.value = currentItems
+        _cartItems.value = ArrayList(currentItems)
         updateTotalPrice()
     }
 
@@ -54,7 +54,7 @@ class CartViewModel : BaseViewModel() {
     fun removeItem(productId: String) {
         val currentItems = _cartItems.value ?: mutableListOf()
         currentItems.removeAll { it.productId == productId }
-        _cartItems.value = currentItems
+        _cartItems.value = ArrayList(currentItems)
         updateTotalPrice()
     }
 
@@ -76,7 +76,7 @@ class CartViewModel : BaseViewModel() {
                 removeItem(productId)
             } else {
                 item.quantity = quantity
-                _cartItems.value = currentItems
+                _cartItems.value = ArrayList(currentItems)
                 updateTotalPrice()
             }
         }

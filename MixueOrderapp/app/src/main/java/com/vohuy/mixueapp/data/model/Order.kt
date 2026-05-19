@@ -10,12 +10,10 @@ data class Order(
     val id: String = "",
     val userId: String = "",
     val items: List<OrderItem> = emptyList(),
-    val status: String = "PENDING", // PENDING, CONFIRMED, DELIVERING, DONE, CANCELLED
+    val status: String = "PENDING",
+    val totalPrice: Double = 0.0, // SỬA Ở ĐÂY: Đưa vào Constructor để Firebase lưu lại
     val createdAt: Long = System.currentTimeMillis()
 ) {
-    val totalPrice: Double
-        get() = items.sumOf { it.getTotalPrice() }
-    
     val orderDate: String
         get() {
             val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())

@@ -26,9 +26,9 @@ class MainActivity : ComponentActivity() {
         if (BuildConfig.DEBUG) {
             FirebaseHealthCheck.runAll()
 
-            // Optional: seed sample products so the Home screen can show data immediately.
-            // Comment out if you don't want automatic writes on startup.
-            FirestoreSampleDataSeeder.seedProducts()
+            // Debug helper: verify reads only (NO automatic writes on startup).
+            // Seeding must be a manual developer/admin action, otherwise you'll see
+            // "delete -> reload -> data comes back" behavior.
             FirestoreSampleDataSeeder.verifyProductsReadable()
         }
         

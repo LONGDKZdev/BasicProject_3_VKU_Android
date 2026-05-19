@@ -2,42 +2,37 @@ package com.vohuy.mixueapp.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+// Map màu thương hiệu vào hệ thống Material 3
+private val LightColorScheme = lightColorScheme(
+    primary = MixueRed, // Đỏ Mixue làm màu chủ đạo (TopBar, Nút bấm, Text nổi bật)
+    onPrimary = Color.White, // Chữ trên nền đỏ sẽ màu trắng
+    secondary = MixueGreen,
+    tertiary = MixueOrange,
+    background = Color(0xFFF8F9FA), // Màu nền xám nhạt cho App giống ShopeeFood
+    surface = Color.White, // Màu nền của các Card (Thẻ)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColorScheme = darkColorScheme(
+    primary = MixueRed,
+    secondary = MixueGreen,
+    tertiary = MixueOrange,
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
 )
 
 @Composable
 fun MixueOrderAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // TẮT dynamic color để ép máy dùng màu Mixue thay vì màu hình nền điện thoại
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,7 +40,6 @@ fun MixueOrderAppTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
@@ -56,4 +50,3 @@ fun MixueOrderAppTheme(
         content = content
     )
 }
-

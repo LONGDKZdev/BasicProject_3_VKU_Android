@@ -8,7 +8,7 @@ import com.vohuy.mixueapp.data.model.OrderItem
 import com.vohuy.mixueapp.data.repository.OrderRepository
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.Result
-
+import com.google.firebase.firestore.ListenerRegistration
 /**
  * OrderViewModel - Xử lý logic đơn hàng
  * Kế thừa BaseViewModel để quản lý isLoading, errorMessage, successMessage chung
@@ -16,6 +16,8 @@ import com.vohuy.mixueapp.utils.Result
 class OrderViewModel : BaseViewModel() {
 
     private val repository = OrderRepository()
+
+    private var ordersListener: ListenerRegistration? = null
 
     private val _userOrders = MutableLiveData<List<Order>>()
     val userOrders: LiveData<List<Order>> = _userOrders
@@ -39,10 +41,13 @@ class OrderViewModel : BaseViewModel() {
         }
 
         setLoading(true)
+        val calculatedTotal = items.sumOf { it.getTotalPrice() }
+
         val order = Order(
             userId = userId,
             items = items,
-            status = Constants.ORDER_STATUS_PENDING
+            status = Constants.ORDER_STATUS_PENDING,
+            totalPrice = calculatedTotal
         )
 
         repository.createOrder(order).observeForever { result ->
@@ -64,6 +69,8 @@ class OrderViewModel : BaseViewModel() {
      */
     fun loadUserOrders(userId: String) {
         setLoading(true)
+        ordersListener?.remove()
+
         repository.getUserOrders(userId).observeForever { result ->
             when (result) {
                 is Result.Success -> {
@@ -77,6 +84,16 @@ class OrderViewModel : BaseViewModel() {
                 is Result.Loading -> setLoading(true)
             }
         }
+    }
+
+    fun resetOrderState() {
+        _createdOrderId.value = ""
+        clearMessages()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        ordersListener?.remove() // Dọn rác khi ViewModel bị hủy
     }
 
     /**

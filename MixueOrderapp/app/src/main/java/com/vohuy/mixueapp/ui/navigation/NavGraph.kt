@@ -12,8 +12,6 @@ import com.vohuy.mixueapp.ui.screens.HomeScreen
 import com.vohuy.mixueapp.ui.screens.LoginScreen
 import com.vohuy.mixueapp.ui.screens.OrderHistoryScreen
 import com.vohuy.mixueapp.ui.screens.ProductDetailScreen
-import com.vohuy.mixueapp.ui.screens.RegisterScreen
-import com.vohuy.mixueapp.ui.screens.admin.AdminAddProductScreen
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
@@ -30,7 +28,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         startDestination = startDestination
     ) {
         composable(Routes.LOGIN) { LoginScreen(navController, authVm) }
-        composable(Routes.REGISTER) { RegisterScreen(navController, authVm) }
         composable(Routes.HOME) { entry ->
             // Shared VMs scoped to HOME graph (so Cart and ProductDetail can share same cart)
             viewModel<CartViewModel>(entry)
@@ -46,8 +43,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         }
         composable(Routes.ORDER_HISTORY) { OrderHistoryScreen(navController) }
 
-        // Phase 2: Admin create product + upload image to Supabase
-        composable(Routes.ADMIN_ADD_PRODUCT) { AdminAddProductScreen(navController) }
 
         composable(Routes.PRODUCT_DETAIL) { backStackEntry ->
             val productId = backStackEntry.arguments?.getString(Routes.PRODUCT_ID) ?: ""

@@ -1,7 +1,10 @@
 package com.vohuy.mixueapp.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -11,12 +14,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
 import com.vohuy.mixueapp.utils.formatPrice
@@ -42,6 +49,8 @@ fun ProductDetailScreen(
     val product by productVm.selectedProduct.observeAsState(null)
     var quantity by remember { mutableStateOf(1) }
 
+    val sheetShape = remember { RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,112 +64,173 @@ fun ProductDetailScreen(
                     }
                 }
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-                .padding(16.dp)
-        ) {
-            if (product == null) {
-                Text(
-                    text = "Đang tải sản phẩm...",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Product Image
-            AsyncImage(
-                model = product?.imageUrl.orEmpty(),
-                contentDescription = "Product Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Product Name
-            Text(
-                product?.name ?: "",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Product Price
-            Text(
-                (product?.price ?: 0.0).formatPrice(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Product Description
-            Text(
-                "Mô Tả Sản Phẩm",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Text(
-                product?.description ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Quantity Selector
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = 6.dp,
+                shadowElevation = 10.dp,
             ) {
-                Text("Số Lượng:", style = MaterialTheme.typography.bodyMedium)
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
-                    IconButton(
-                        onClick = { if (quantity > 1) quantity-- }
+                    Button(
+                        onClick = {
+                            val p = product
+                            if (p != null) {
+                                cartVm.addItem(p, quantity)
+                                navController.navigate(Routes.CART)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = product != null
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
-                    }
-
-                    Text(quantity.toString(), style = MaterialTheme.typography.bodyMedium)
-
-                    IconButton(onClick = { quantity++ }) {
-                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                        Text(
+                            "Thêm Vào Giỏ Hàng",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Hero image (edge-to-edge)
+                AsyncImage(
+                    model = product?.imageUrl.orEmpty(),
+                    contentDescription = product?.name ?: "Product Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
 
-            Spacer(modifier = Modifier.weight(1f))
+                // spacer so the sheet doesn't get clipped by bottom bar
+                Spacer(modifier = Modifier.height(96.dp))
+            }
 
-            // Add to Cart Button
-            Button(
-                onClick = {
-                    val p = product
-                    if (p != null) {
-                        cartVm.addItem(p, quantity)
-                        navController.navigate("cart")
-                    }
-                },
+            // Overlapping bottom-sheet-like info surface
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                ,
-                enabled = product != null
+                    .align(Alignment.BottomCenter),
+                shape = sheetShape,
+                tonalElevation = 2.dp,
+                shadowElevation = 12.dp,
             ) {
-                Text("Thêm Vào Giỏ Hàng")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp)
+                ) {
+                    if (product == null) {
+                        Text(
+                            text = "Đang tải sản phẩm...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    Text(
+                        text = product?.name.orEmpty(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = (product?.price ?: 0.0).formatPrice(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Mô tả",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = product?.description.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Quantity selector pill
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Số lượng",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        IconButton(
+                            onClick = { if (quantity > 1) quantity-- },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                        }
+
+                        Text(
+                            text = quantity.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 14.dp)
+                        )
+
+                        IconButton(
+                            onClick = { quantity++ },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Increase",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    // Extra gap so scrolling content doesn't collide with bottomBar
+                    Spacer(modifier = Modifier.height(76.dp))
+                }
             }
         }
     }
