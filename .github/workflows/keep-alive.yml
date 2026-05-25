@@ -1,0 +1,17 @@
+name: Supabase Keep Alive Ping
+
+on:
+  schedule:
+    # Chạy tự động vào lúc 00:00 (nửa đêm) mỗi Chủ Nhật hàng tuần
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Cho phép bạn bấm nút chạy bằng tay nếu thích
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/ping_table?select=*" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
