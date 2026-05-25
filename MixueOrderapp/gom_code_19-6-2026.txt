@@ -1,0 +1,5356 @@
+# TỔNG HỢP MÃ NGUỒN DỰ ÁN  (PHẦN 1)
+==================================================
+
+
+==================================================
+### FILE: build.gradle.kts
+==================================================
+```
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    id("com.android.application") version "8.11.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+    id("com.google.gms.google-services") version "4.4.1" apply false
+}
+```
+
+
+==================================================
+### FILE: settings.gradle.kts
+==================================================
+```
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Mixue Order app"
+include(":app")
+
+```
+
+
+==================================================
+### FILE: app\build.gradle.kts
+==================================================
+```
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+    id("com.google.gms.google-services")
+}
+
+
+android {
+    namespace = "com.vohuy.mixueapp"
+    compileSdk = 36
+
+    // Read local.properties (not committed) for Supabase keys
+    val localProperties = Properties().apply {
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.inputStream().use { load(it) }
+        }
+    }
+
+    defaultConfig {
+        applicationId = "com.vohuy.mixueapp"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Supabase (Storage) keys
+        // Priority:
+        // 1) local.properties (recommended)
+        // 2) hardcoded fallback (LOCAL-ONLY) to keep this workspace runnable even if local.properties is missing.
+        val supabaseUrl = localProperties.getProperty("SUPABASE_URL")
+            ?.takeIf { it.isNotBlank() }
+            ?: "https://vqupigbrkuucghnauwrb.supabase.co"
+
+        val supabaseAnonKey = localProperties.getProperty("SUPABASE_ANON_KEY")
+            ?.takeIf { it.isNotBlank() }
+            ?: "sb_publishable_hJjVJNHKhXvwIT17Goi0Cw_4w3AQE9y"
+
+        val supabaseBucket = localProperties.getProperty("SUPABASE_BUCKET")
+            ?.takeIf { it.isNotBlank() }
+            ?: "StorageImage_MixueAndroid"
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "SUPABASE_BUCKET", "\"$supabaseBucket\"")
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+        )
+    }
+
+    buildFeatures {
+        compose = true
+        // Compose-first UI; keep ViewBinding off unless you still need XML screens.
+        viewBinding = false
+        buildConfig = true
+    }
+}
+
+dependencies {
+
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
+    
+    // Jetpack Compose Dependencies
+    // Use a more recent Compose BOM to avoid Indication/clickable incompatibilities
+    // (e.g. crash: 'clickable only supports IndicationNodeFactory... PlatformRipple').
+    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    
+    // Compose Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    
+    // Compose ViewModel & LiveData integration
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    
+    // Coil for image loading in Compose (replaces Glide)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
+    // Compose debugging
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    
+    // RecyclerView for listing items - UPDATED to 1.4.0
+    implementation(libs.androidx.recyclerview)
+    
+    // Fragment - UPDATED to latest
+    implementation(libs.androidx.fragment.ktx)
+    
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    //***THƯ VIỆN FIREBASE CHO ĐỒ ÁN MIXUE***
+
+    // Firebase Bill of Materials (BoM) - Stable version
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+
+    // Các dịch vụ Firebase cho đồ án Mixue
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
+    // --- Supabase (Storage) ---
+    // We only use Supabase for image storage (public bucket).
+    implementation("io.github.jan-tennert.supabase:supabase-kt:2.6.1")
+    implementation("io.github.jan-tennert.supabase:storage-kt:2.6.1")
+    implementation("io.ktor:ktor-client-okhttp:2.3.12")
+
+
+    // ViewModel và LiveData cho mô hình MVVM - UPDATED to 2.8.1
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    
+    // Coroutines - UPDATED for async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+}
+```
+
+
+==================================================
+### FILE: app\src\androidTest\java\com\vohuy\mixueapp\ExampleInstrumentedTest.kt
+==================================================
+```
+package com.vohuy.mixueapp
+
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
+
+import org.junit.Test
+import org.junit.runner.RunWith
+
+import org.junit.Assert.*
+
+/**
+ * Instrumented test, which will execute on an Android device.
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+@RunWith(AndroidJUnit4::class)
+class ExampleInstrumentedTest {
+    @Test
+    fun useAppContext() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals("com.vohuy.mixueapp", appContext.packageName)
+    }
+}
+```
+
+
+==================================================
+### FILE: app\src\main\AndroidManifest.xml
+==================================================
+```
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Internet Permission for Firebase -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".MixueApp"
+        android:allowBackup="true"
+        android:label="MixueOrderApp"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\MainActivity.kt
+==================================================
+```
+package com.vohuy.mixueapp
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import com.vohuy.mixueapp.ui.theme.MixueOrderAppTheme
+import com.vohuy.mixueapp.ui.navigation.NavGraph
+import com.vohuy.mixueapp.utils.FirebaseHealthCheck
+import com.vohuy.mixueapp.utils.FirestoreSampleDataSeeder
+
+/**
+ * MainActivity - Activity chính quản lý Compose navigation
+ * Sử dụng Jetpack Compose với Navigation Compose
+ */
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        
+        // Test Firebase connections (debug only)
+        if (BuildConfig.DEBUG) {
+            FirebaseHealthCheck.runAll()
+
+            // Debug helper: verify reads only (NO automatic writes on startup).
+            // Seeding must be a manual developer/admin action, otherwise you'll see
+            // "delete -> reload -> data comes back" behavior.
+            FirestoreSampleDataSeeder.verifyProductsReadable()
+        }
+        
+        setContent {
+            MixueOrderAppTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    NavGraph()
+                }
+            }
+        }
+    }
+}
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\MixueApp.kt
+==================================================
+```
+package com.vohuy.mixueapp
+
+import android.app.Application
+import com.google.firebase.FirebaseApp
+
+/**
+ * MixueApp - Application class cho ứng dụng Mixue
+ * Khởi tạo Firebase và các configurations toàn cộng
+ */
+class MixueApp : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        
+        // Khởi tạo Firebase
+        FirebaseApp.initializeApp(this)
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\base\BaseActivity.kt
+==================================================
+```
+package com.vohuy.mixueapp.base
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
+/**
+ * BaseActivity
+ *
+ * Project này là 100% Jetpack Compose, vì vậy không dùng ViewBinding / setContentView.
+ * Lớp này giữ lại các tiện ích chung như Toast và trạng thái loading.
+ */
+abstract class BaseActivity : ComponentActivity() {
+
+    /**
+     * Compose-friendly loading state that screens can observe.
+     * You can wire this into a global LoadingDialog inside setContent if needed.
+     */
+    var isLoading: Boolean by mutableStateOf(false)
+        private set
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setupUI()
+        observeViewModel()
+    }
+
+    /**
+     * Setup UI elements (buttons, listeners, etc.)
+     * Activity con override để setup các views của nó
+     */
+    abstract fun setupUI()
+
+    /**
+     * Observe ViewModel LiveData
+     * Activity con override nếu cần observe
+     */
+    open fun observeViewModel() {}
+
+    /**
+     * Show global loading state.
+     */
+    fun showLoading() {
+        isLoading = true
+    }
+
+    /**
+     * Hide global loading state.
+     */
+    fun hideLoading() {
+        isLoading = false
+    }
+
+    /**
+     * Hiển thị Toast notification
+     */
+    fun showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        Toast.makeText(this, message, duration).show()
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\base\BaseRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.base
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+
+/**
+ * Abstract BaseRepository - Quản lý Firebase instances chung
+ * DRY Principle: Không cần khởi tạo Firebase ở mỗi Repository
+ * Tất cả Repository phải kế thừa lớp này
+ */
+open class BaseRepository {
+
+    protected val auth: FirebaseAuth by lazy {
+        FirebaseAuth.getInstance()
+    }
+
+    protected val firestore: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance()
+    }
+
+    protected val storage: FirebaseStorage by lazy {
+        FirebaseStorage.getInstance()
+    }
+
+    /**
+     * Lấy ID của user hiện tại
+     */
+    fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
+    }
+
+    /**
+     * Check xem user đã đăng nhập chưa
+     */
+    fun isUserLoggedIn(): Boolean {
+        return auth.currentUser != null
+    }
+
+    /**
+     * Đăng xuất user
+     */
+    fun logout() {
+        auth.signOut()
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\base\BaseViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.base
+
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+/**
+ * Abstract BaseViewModel - Quản lý trạng thái chung cho mọi ViewModel
+ * DRY Principle: isLoading, errorMessage, successMessage được sử dụng chung
+ * Tất cả ViewModel phải kế thừa lớp này
+ */
+open class BaseViewModel : ViewModel() {
+
+    // Trạng thái loading (hiển thị/ẩn progress bar)
+    val isLoading = MutableLiveData<Boolean>(false)
+
+    // Thông báo lỗi chung
+    val errorMessage = MutableLiveData<String>()
+
+    // Thông báo thành công chung
+    val successMessage = MutableLiveData<String>()
+
+    /**
+     * Set trạng thái loading
+     */
+    fun setLoading(loading: Boolean) {
+        isLoading.value = loading
+    }
+
+    /**
+     * Set thông báo lỗi
+     */
+    fun setError(message: String) {
+        errorMessage.value = message
+        isLoading.value = false
+    }
+
+    /**
+     * Set thông báo thành công
+     */
+    fun setSuccess(message: String) {
+        successMessage.value = message
+        isLoading.value = false
+    }
+
+    /**
+     * Clear thông báo (sử dụng sau khi hiển thị)
+     */
+    fun clearMessages() {
+        errorMessage.value = null
+        successMessage.value = null
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\model\ImageRef.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.model
+
+/**
+ * Stores a reference to an image in Supabase Storage.
+ *
+ * This complements the existing `imageUrl` string fields.
+ * We will start using this in later phases to make delete/replace easier.
+ */
+data class ImageRef(
+    val url: String = "",
+    val path: String = "",
+)
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\model\Order.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.model
+
+import java.text.SimpleDateFormat
+import java.util.*
+
+/**
+ * Order - Model đại diện cho đơn hàng
+ */
+data class Order(
+    val id: String = "",
+    val userId: String = "",
+    val items: List<OrderItem> = emptyList(),
+    val status: String = "PENDING",
+    val totalPrice: Double = 0.0, // SỬA Ở ĐÂY: Đưa vào Constructor để Firebase lưu lại
+    val createdAt: Long = System.currentTimeMillis()
+) {
+    val orderDate: String
+        get() {
+            val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            return formatter.format(Date(createdAt))
+        }
+}
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\model\OrderItem.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.model
+
+/**
+ * OrderItem - Model đại diện cho một item trong đơn hàng
+ */
+data class OrderItem(
+    val id: String = "",
+    val productId: String = "",
+    val productName: String = "",
+    var quantity: Int = 1,
+    val price: Long = 0L,
+    val pricePerUnit: Double = 0.0,
+    val productImage: String = ""
+) {
+    fun getTotalPrice(): Double = quantity * pricePerUnit
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\model\Product.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.model
+
+/**
+ * Product - Model đại diện cho sản phẩm Mixue (Kem, Trà Sữa, Nước)
+ */
+data class Product(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val price: Double = 0.0,
+    val imageUrl: String = "",
+    /**
+     * Supabase Storage object path for this product image.
+     * Example: products/{productId}/main.jpg
+     */
+    val imagePath: String = "",
+    val category: String = "", // "Kem", "Trà Sữa", "Nước"
+    val available: Boolean = true
+)
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\model\User.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.model
+
+/**
+ * User - Model đại diện cho người dùng
+ */
+data class User(
+    val id: String = "",
+    val email: String = "",
+    val fullName: String = "",
+    val phoneNumber: String = "",
+    val role: String = "USER", // "USER" hoặc "ADMIN"
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\remote\supabase\SupabaseClientProvider.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.remote.supabase
+
+import com.vohuy.mixueapp.BuildConfig
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.storage.Storage
+import io.ktor.client.engine.okhttp.OkHttp
+
+/**
+ * Creates a singleton Supabase client.
+ *
+ * NOTE:
+ * - We only use Supabase for Storage (public bucket) in this project.
+ * - URL/key are injected from `local.properties` via BuildConfig fields.
+ */
+object SupabaseClientProvider {
+
+    val client: SupabaseClient by lazy {
+        require(BuildConfig.SUPABASE_URL.isNotBlank()) {
+            "Missing SUPABASE_URL. Please set it in local.properties"
+        }
+        require(BuildConfig.SUPABASE_ANON_KEY.isNotBlank()) {
+            "Missing SUPABASE_ANON_KEY. Please set it in local.properties"
+        }
+
+        createSupabaseClient(
+            supabaseUrl = BuildConfig.SUPABASE_URL,
+            supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
+        ) {
+            httpEngine = OkHttp.create()
+            install(Storage)
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\remote\supabase\SupabasePaths.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.remote.supabase
+
+/**
+ * Centralized path conventions for objects stored in Supabase Storage.
+ */
+object SupabasePaths {
+    fun userAvatar(uid: String): String = "users/$uid/avatar.jpg"
+    fun productMainImage(productId: String): String = "products/$productId/main.jpg"
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\remote\supabase\SupabaseStorageDataSource.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.remote.supabase
+
+import com.vohuy.mixueapp.BuildConfig
+import io.github.jan.supabase.storage.storage
+
+/**
+ * Low-level access to Supabase Storage.
+ *
+ * Higher-level code should use ImageRepository instead of calling this directly.
+ */
+class SupabaseStorageDataSource {
+    private val client = SupabaseClientProvider.client
+
+    private val bucket: String
+        get() = BuildConfig.SUPABASE_BUCKET
+
+    fun bucket() = client.storage.from(bucket)
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\repository\AuthRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.repository
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.google.firebase.auth.FirebaseAuthException
+import com.vohuy.mixueapp.base.BaseRepository
+import com.vohuy.mixueapp.data.model.User
+import com.vohuy.mixueapp.utils.Constants
+import com.vohuy.mixueapp.utils.ErrorHandler
+import com.vohuy.mixueapp.utils.Result
+
+/**
+ * AuthRepository - Xử lý tất cả logic xác thực Firebase
+ * DRY Principle: Tất cả Firebase Auth operations ở đây
+ * Không code Firebase trực tiếp trong Activity/Fragment
+ */
+class AuthRepository : BaseRepository() {
+
+    /**
+     * Đăng ký người dùng mới
+     */
+    fun registerUser(email: String, password: String, fullName: String): LiveData<Result<User>> {
+        val result = MutableLiveData<Result<User>>()
+        result.value = Result.Loading()
+
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnSuccessListener { authResult ->
+                val userId = authResult.user?.uid ?: ""
+                val user = User(
+                    id = userId,
+                    email = email,
+                    fullName = fullName,
+                    role = Constants.ROLE_USER,
+                    createdAt = System.currentTimeMillis()
+                )
+
+                authResult.user?.sendEmailVerification()
+
+                // Lưu thông tin user vào Firestore
+                firestore.collection(Constants.COLLECTION_USERS)
+                    .document(userId)
+                    .set(user)
+                    .addOnSuccessListener {
+                        result.value = Result.Success(user)
+                        auth.signOut()
+                    }
+                    .addOnFailureListener { exception ->
+                        result.value = Result.Error(exception as Exception)
+                    }
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = if (exception is FirebaseAuthException) {
+                    ErrorHandler.getAuthErrorMessage(exception.errorCode)
+                } else {
+                    ErrorHandler.getErrorMessage(exception as Exception)
+                }
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Đăng nhập người dùng
+     */
+    fun loginUser(email: String, password: String): LiveData<Result<User>> {
+        val result = MutableLiveData<Result<User>>()
+        result.value = Result.Loading()
+
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener { authResult ->
+                if (authResult.user?.isEmailVerified == true) {
+                    val userId = authResult.user?.uid ?: ""
+                    fetchUserData(userId) { user ->
+                        if (user != null) {
+                            result.value = Result.Success(user)
+                        } else {
+                            result.value = Result.Error(Exception("Không thể lấy thông tin người dùng"))
+                        }
+                    }
+                } else {
+                    auth.signOut() // Chưa verify thì đá ra ngoài
+                    result.value = Result.Error(Exception("Vui lòng kiểm tra hộp thư và xác minh Email trước khi đăng nhập!"))
+                }
+            }
+            .addOnFailureListener { exception ->
+                // ... (Giữ nguyên phần xử lý lỗi của bạn)
+                val errorMessage = if (exception is FirebaseAuthException) {
+                    ErrorHandler.getAuthErrorMessage(exception.errorCode)
+                } else {
+                    ErrorHandler.getErrorMessage(exception as Exception)
+                }
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy thông tin user hiện tại
+     */
+    fun getCurrentUser(): LiveData<User?> {
+        val result = MutableLiveData<User?>()
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            fetchUserData(userId) { user ->
+                // Fallback: if Firestore user doc doesn't exist yet, still return minimal user.
+                result.value = user ?: User(
+                    id = userId,
+                    email = auth.currentUser?.email ?: "",
+                    fullName = "",
+                    role = Constants.ROLE_USER,
+                    createdAt = System.currentTimeMillis(),
+                )
+            }
+        } else {
+            result.value = null
+        }
+        return result
+    }
+
+    /**
+     * Đăng xuất
+     */
+    fun logoutUser(): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        try {
+            auth.signOut()
+            result.value = Result.Success(Unit)
+        } catch (exception: Exception) {
+            result.value = Result.Error(exception)
+        }
+        return result
+    }
+
+    /**
+     * Lấy dữ liệu user từ Firestore
+     */
+    private fun fetchUserData(userId: String, callback: (User?) -> Unit) {
+        firestore.collection(Constants.COLLECTION_USERS)
+            .document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                val user = document.toObject(User::class.java)
+                callback(user)
+            }
+            .addOnFailureListener {
+                callback(null)
+            }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\repository\ImageRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.repository
+
+/**
+ * ImageRepository defines how the app uploads and manages images.
+ *
+ * In this project, 100% images will be stored in Supabase Storage (public bucket).
+ */
+interface ImageRepository {
+    data class ImageInfo(
+        val publicUrl: String,
+        val path: String,
+    )
+
+    suspend fun uploadUserAvatar(uid: String, bytes: ByteArray, contentType: String = "image/jpeg"): ImageInfo
+
+    suspend fun uploadProductMainImage(productId: String, bytes: ByteArray, contentType: String = "image/jpeg"): ImageInfo
+
+    suspend fun deleteByPath(path: String)
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\repository\OrderRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.repository
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseRepository
+import com.vohuy.mixueapp.data.model.Order
+import com.vohuy.mixueapp.utils.Constants
+import com.vohuy.mixueapp.utils.ErrorHandler
+import com.vohuy.mixueapp.utils.Result
+import com.google.firebase.firestore.ListenerRegistration
+
+/**
+ * OrderRepository - Xử lý tất cả logic đơn hàng từ Firebase
+ * DRY Principle: Tất cả Firestore Order operations ở đây
+ */
+
+class OrderRepository : BaseRepository() {
+
+    /**
+     * Lắng nghe danh sách đơn hàng theo user (real-time)
+     */
+    fun listenUserOrders(
+        userId: String,
+        onResult: (Result<List<Order>>) -> Unit
+    ): ListenerRegistration {
+        onResult(Result.Loading())
+
+        return firestore.collection(Constants.COLLECTION_ORDERS)
+            .whereEqualTo(Constants.FIELD_ORDER_USER_ID, userId)
+            .orderBy(
+                Constants.FIELD_ORDER_CREATED_AT,
+                com.google.firebase.firestore.Query.Direction.DESCENDING
+            )
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    onResult(Result.Error(Exception(errorMessage)))
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val orders = snapshot.toObjects(Order::class.java)
+                    onResult(Result.Success(orders))
+                }
+            }
+    }
+
+    /**
+     * Tạo đơn hàng mới
+     */
+    fun createOrder(order: Order): LiveData<Result<String>> {
+        val result = MutableLiveData<Result<String>>()
+        result.value = Result.Loading()
+
+        val newOrder = order.copy(
+            id = firestore.collection(Constants.COLLECTION_ORDERS).document().id,
+            createdAt = System.currentTimeMillis()
+        )
+
+        firestore.collection(Constants.COLLECTION_ORDERS)
+            .document(newOrder.id)
+            .set(newOrder)
+            .addOnSuccessListener {
+                result.value = Result.Success(newOrder.id)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy tất cả đơn hàng của user
+     */
+    fun getUserOrders(userId: String): LiveData<Result<List<Order>>> {
+        val result = MutableLiveData<Result<List<Order>>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_ORDERS)
+            .whereEqualTo(Constants.FIELD_ORDER_USER_ID, userId)
+            .orderBy(Constants.FIELD_ORDER_CREATED_AT, com.google.firebase.firestore.Query.Direction.DESCENDING)
+            // NÂNG CẤP: Đổi .get() thành Lắng nghe Real-time
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    result.value = Result.Error(Exception(errorMessage))
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val orders = snapshot.toObjects(Order::class.java)
+                    result.value = Result.Success(orders)
+                }
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy đơn hàng theo ID
+     */
+    fun getOrderById(orderId: String): LiveData<Result<Order>> {
+        val result = MutableLiveData<Result<Order>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_ORDERS)
+            .document(orderId)
+            .get()
+            .addOnSuccessListener { document ->
+                val order = document.toObject(Order::class.java)
+                if (order != null) {
+                    result.value = Result.Success(order)
+                } else {
+                    result.value = Result.Error(Exception("Không tìm thấy đơn hàng"))
+                }
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Cập nhật trạng thái đơn hàng
+     */
+    fun updateOrderStatus(orderId: String, status: String): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_ORDERS)
+            .document(orderId)
+            .update(Constants.FIELD_ORDER_STATUS, status)
+            .addOnSuccessListener {
+                result.value = Result.Success(Unit)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Xóa đơn hàng
+     */
+    fun deleteOrder(orderId: String): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_ORDERS)
+            .document(orderId)
+            .delete()
+            .addOnSuccessListener {
+                result.value = Result.Success(Unit)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+}
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\repository\ProductRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.repository
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseRepository
+import com.vohuy.mixueapp.data.model.Product
+import com.vohuy.mixueapp.utils.Constants
+import com.vohuy.mixueapp.utils.ErrorHandler
+import com.vohuy.mixueapp.utils.Result
+
+/**
+ * ProductRepository - Xử lý tất cả logic sản phẩm từ Firebase
+ * DRY Principle: Tất cả Firestore Product operations ở đây
+ */
+class ProductRepository : BaseRepository() {
+
+    /**
+     * Lấy tất cả sản phẩm
+     */
+    fun getAllProducts(): LiveData<Result<List<Product>>> {
+        val result = MutableLiveData<Result<List<Product>>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val products = snapshot.toObjects(Product::class.java)
+                result.value = Result.Success(products)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy sản phẩm theo danh mục
+     */
+    fun getProductsByCategory(category: String): LiveData<Result<List<Product>>> {
+        val result = MutableLiveData<Result<List<Product>>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .whereEqualTo(Constants.FIELD_PRODUCT_CATEGORY, category)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val products = snapshot.toObjects(Product::class.java)
+                result.value = Result.Success(products)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy sản phẩm theo ID
+     */
+    fun getProductById(productId: String): LiveData<Result<Product>> {
+        val result = MutableLiveData<Result<Product>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .document(productId)
+            .get()
+            .addOnSuccessListener { document ->
+                val product = document.toObject(Product::class.java)
+                if (product != null) {
+                    result.value = Result.Success(product)
+                } else {
+                    result.value = Result.Error(Exception("Không tìm thấy sản phẩm"))
+                }
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+
+    /**
+     * Lấy sản phẩm khả dụng
+     */
+    fun getAvailableProducts(): LiveData<Result<List<Product>>> {
+        val result = MutableLiveData<Result<List<Product>>>()
+        result.value = Result.Loading()
+
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .whereEqualTo(Constants.FIELD_PRODUCT_AVAILABLE, true)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val products = snapshot.toObjects(Product::class.java)
+                result.value = Result.Success(products)
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+
+        return result
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\data\repository\impl\SupabaseImageRepository.kt
+==================================================
+```
+package com.vohuy.mixueapp.data.repository.impl
+
+import com.vohuy.mixueapp.BuildConfig
+import com.vohuy.mixueapp.data.remote.supabase.SupabaseClientProvider
+import com.vohuy.mixueapp.data.repository.ImageRepository
+import io.github.jan.supabase.storage.storage
+import io.github.jan.supabase.storage.upload
+
+/**
+ * Supabase implementation for [ImageRepository].
+ *
+ * Bucket is public, so we return a public URL for direct access.
+ */
+class SupabaseImageRepository : ImageRepository {
+
+    private val bucket: String
+        get() = BuildConfig.SUPABASE_BUCKET
+
+    override suspend fun uploadUserAvatar(
+        uid: String,
+        bytes: ByteArray,
+        contentType: String,
+    ): ImageRepository.ImageInfo {
+        val path = "users/$uid/avatar.jpg"
+        return upload(bytes = bytes, path = path, contentType = contentType)
+    }
+
+    override suspend fun uploadProductMainImage(
+        productId: String,
+        bytes: ByteArray,
+        contentType: String,
+    ): ImageRepository.ImageInfo {
+        val path = "products/$productId/main.jpg"
+        return upload(bytes = bytes, path = path, contentType = contentType)
+    }
+
+    override suspend fun deleteByPath(path: String) {
+        // Optional in Phase 1; implemented for completeness.
+        val storage = SupabaseClientProvider.client.storage
+        storage.from(bucket).delete(path)
+    }
+
+    private suspend fun upload(
+        bytes: ByteArray,
+        path: String,
+        contentType: String,
+    ): ImageRepository.ImageInfo {
+        require(bucket.isNotBlank()) { "Missing SUPABASE_BUCKET in BuildConfig/local.properties" }
+
+        val storage = SupabaseClientProvider.client.storage
+        storage.from(bucket).upload(
+            path = path,
+            data = bytes,
+            upsert = true,
+        )
+
+        // Public URL format:
+        // https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+        // Users may accidentally provide the REST endpoint (..../rest/v1/) instead of the base URL.
+        val baseUrl = BuildConfig.SUPABASE_URL
+            .trimEnd('/')
+            .removeSuffix("/rest/v1")
+            .removeSuffix("/rest/v1/")
+
+        val publicUrl = "$baseUrl/storage/v1/object/public/$bucket/$path"
+
+        return ImageRepository.ImageInfo(
+            publicUrl = publicUrl,
+            path = path,
+        )
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\navigation\NavGraph.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vohuy.mixueapp.ui.screens.CartScreen
+import com.vohuy.mixueapp.ui.screens.HomeScreen
+import com.vohuy.mixueapp.ui.screens.LoginScreen
+import com.vohuy.mixueapp.ui.screens.OrderHistoryScreen
+import com.vohuy.mixueapp.ui.screens.ProductDetailScreen
+import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
+
+@Composable
+fun NavGraph(navController: NavHostController = rememberNavController()) {
+    val authVm: AuthViewModel = viewModel()
+
+    // If already logged in, skip login.
+    val startDestination = if (authVm.repositoryIsUserLoggedIn()) Routes.HOME else Routes.LOGIN
+
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        composable(Routes.LOGIN) { LoginScreen(navController, authVm) }
+        composable(Routes.HOME) { entry ->
+            // Shared VMs scoped to HOME graph (so Cart and ProductDetail can share same cart)
+            viewModel<CartViewModel>(entry)
+            HomeScreen(navController)
+        }
+
+        composable(Routes.CART) {
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                navController.getBackStackEntry(Routes.HOME)
+            }
+            val cartVm: CartViewModel = viewModel(parentEntry)
+            CartScreen(navController, cartVm)
+        }
+        composable(Routes.ORDER_HISTORY) { OrderHistoryScreen(navController) }
+
+
+        composable(Routes.PRODUCT_DETAIL) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString(Routes.PRODUCT_ID) ?: ""
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                navController.getBackStackEntry(Routes.HOME)
+            }
+            val cartVm: CartViewModel = viewModel(parentEntry)
+            val productVm: ProductViewModel = viewModel()
+            ProductDetailScreen(
+                navController = navController,
+                productId = productId,
+                productViewModel = productVm,
+                cartViewModel = cartVm,
+            )
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\navigation\Routes.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.navigation
+
+/**
+ * Centralized navigation routes to avoid duplicated raw strings across the app.
+ */
+object Routes {
+    const val LOGIN = "login"
+    const val HOME = "home"
+    const val CART = "cart"
+    const val ORDER_HISTORY = "order_history"
+
+    // Arguments
+    const val PRODUCT_ID = "productId"
+    const val PRODUCT_DETAIL = "product_detail/{$PRODUCT_ID}"
+
+
+    fun productDetail(productId: String): String = "product_detail/$productId"
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\CartScreen.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
+import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.utils.formatPrice
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CartScreen(
+    navController: NavController,
+    viewModel: CartViewModel = viewModel()
+) {
+    val cartItems by viewModel.cartItems.observeAsState(emptyList())
+    val totalPrice by viewModel.totalPrice.observeAsState(0.0)
+
+    val authVm: AuthViewModel = viewModel()
+    val orderVm: OrderViewModel = viewModel()
+
+    val currentUser by authVm.currentUser.observeAsState()
+    val createdOrderId by orderVm.createdOrderId.observeAsState()
+    val orderSuccess by orderVm.successMessage.observeAsState()
+    val orderError by orderVm.errorMessage.observeAsState()
+
+    // Ensure current user is fetched (covers cold start)
+    LaunchedEffect(Unit) {
+        authVm.fetchCurrentUser()
+    }
+
+    // On successful checkout -> clear cart and go to order history
+    LaunchedEffect(createdOrderId, orderSuccess) {
+        if (!createdOrderId.isNullOrBlank()) {
+            viewModel.clearCart()
+            navController.navigate(Routes.ORDER_HISTORY)
+            orderVm.resetOrderState()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Giỏ Hàng") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            if (cartItems.isNotEmpty()) {
+                Surface(
+                    tonalElevation = 6.dp,
+                    shadowElevation = 12.dp,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Tổng cộng",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                totalPrice.formatPrice(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                val uid = currentUser?.id
+                                if (uid.isNullOrBlank()) {
+                                    orderVm.setError("Bạn cần đăng nhập để thanh toán")
+                                } else {
+                                    orderVm.createOrder(uid, cartItems)
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text(
+                                "Thanh Toán",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        if (!orderError.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = orderError ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
+        if (cartItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Giỏ hàng của bạn đang trống",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Hãy thêm món bạn thích để bắt đầu đặt hàng.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 96.dp)
+            ) {
+                items(cartItems) { item ->
+                    CartItemCard(item) { id ->
+                        viewModel.removeFromCart(id)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Product Image
+            AsyncImage(
+                model = item.productImage,
+                contentDescription = item.productName,
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentScale = ContentScale.Crop
+            )
+
+            // Product Info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    item.productName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    "SL: ${item.quantity} x ${item.pricePerUnit.formatPrice()}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "Thành tiền: ${(item.quantity * item.pricePerUnit).formatPrice()}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Delete Button
+            IconButton(onClick = { onDelete(item.id) }) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete")
+            }
+        }
+    }
+}
+
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\HomeScreen.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.vohuy.mixueapp.data.model.Product
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.ui.viewmodel.HomeViewModel
+import com.vohuy.mixueapp.utils.formatPrice
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    navController: NavController,
+    viewModel: HomeViewModel? = null,
+    authViewModel: AuthViewModel? = null
+) {
+    val vm = viewModel ?: viewModel<HomeViewModel>()
+    val authVm = authViewModel ?: viewModel<AuthViewModel>()
+
+    val products by vm.products.observeAsState(emptyList())
+
+    LaunchedEffect(Unit) {
+        authVm.fetchCurrentUser()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Mixue Menu", fontWeight = FontWeight.Bold)
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary, // Đổ màu Đỏ Mixue
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
+                actions = {
+                    IconButton(onClick = { navController.navigate(Routes.ORDER_HISTORY) }) {
+                        Icon(Icons.Default.List, contentDescription = "Lịch sử")
+                    }
+                    IconButton(onClick = { navController.navigate(Routes.CART) }) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "Giỏ Hàng")
+                    }
+                    IconButton(onClick = {
+                        authVm.logoutUser()
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    }) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = "Đăng xuất")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        if (products.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        } else {
+            // ĐÃ ĐỔI SANG GRID 2 CỘT
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(products) { product ->
+                    ProductGridCard(product) {
+                        navController.navigate(Routes.productDetail(product.id))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductGridCard(product: Product, onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(16.dp), // Bo góc mềm mại
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Ảnh sản phẩm
+            AsyncImage(
+                model = product.imageUrl,
+                contentDescription = product.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f) // Giữ ảnh luôn vuông
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            // Thông tin (Tên + Giá)
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = product.price.formatPrice(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary, // Giá màu đỏ nổi bật
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\LoginScreen.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+
+@Composable
+fun LoginScreen(
+    navController: NavController,
+    viewModel: AuthViewModel? = null,
+) {
+    val vm = viewModel ?: viewModel<AuthViewModel>()
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }
+    val isLoading by vm.isLoading.observeAsState(false)
+    val currentUser by vm.currentUser.observeAsState()
+    val errorMessage by vm.errorMessage.observeAsState()
+    val successMessage by vm.successMessage.observeAsState()
+    val isLoginTab by vm.isLoginTab.observeAsState(true)
+
+    // Navigate when login succeeds
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.LOGIN) { inclusive = true }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            if (isLoginTab) "Đăng Nhập" else "Đăng Ký",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        TabRow(
+            selectedTabIndex = if (isLoginTab) 0 else 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
+        ) {
+            Tab(
+                selected = isLoginTab,
+                onClick = { vm.setLoginTab(true) },
+                text = { Text("Đăng nhập") }
+            )
+            Tab(
+                selected = !isLoginTab,
+                onClick = { vm.setLoginTab(false) },
+                text = { Text("Đăng ký") }
+            )
+        }
+
+        if (!isLoginTab) {
+            TextField(
+                value = fullName,
+                onValueChange = { fullName = it },
+                label = { Text("Họ và Tên") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                singleLine = true
+            )
+        }
+
+        TextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            singleLine = true
+        )
+
+        TextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Mật Khẩu") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
+        )
+
+        Button(
+            onClick = {
+                if (isLoginTab) {
+                    vm.loginUser(email.trim(), password)
+                } else {
+                    vm.registerUser(email.trim(), password, fullName.trim())
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            enabled = if (isLoginTab) {
+                email.isNotEmpty() && password.isNotEmpty() && !isLoading
+            } else {
+                email.isNotEmpty() && password.isNotEmpty() && fullName.isNotBlank() && !isLoading
+            }
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(if (isLoginTab) "Đăng Nhập" else "Đăng Ký")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (!errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        if (!successMessage.isNullOrBlank()) {
+            Text(
+                text = successMessage ?: "",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\OrderHistoryScreen.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.vohuy.mixueapp.data.model.Order
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
+import com.vohuy.mixueapp.utils.Constants
+import com.vohuy.mixueapp.utils.formatPrice
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrderHistoryScreen(
+    navController: NavController,
+    viewModel: OrderViewModel? = null
+) {
+    val vm = viewModel ?: viewModel<OrderViewModel>()
+    val orders by vm.orders.observeAsState(emptyList())
+
+    val authVm: AuthViewModel = viewModel()
+    val currentUser by authVm.currentUser.observeAsState()
+
+    LaunchedEffect(Unit) {
+        authVm.fetchCurrentUser()
+    }
+
+    LaunchedEffect(currentUser?.id) {
+        val uid = currentUser?.id
+        if (!uid.isNullOrBlank()) {
+            vm.loadUserOrders(uid)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Lịch Sử Đơn Hàng") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        if (orders.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Chưa có đơn hàng nào")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(orders) { order ->
+                    OrderCard(order)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderCard(order: Order) {
+    val chipScheme = MaterialTheme.colorScheme
+    val statusText = remember(order.status) { getStatusText(order.status) }
+    val (chipContainer, chipLabel) = remember(order.status, chipScheme) {
+        statusChipColors(order.status, chipScheme)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Đơn #${order.id}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        order.orderDate,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                AssistChip(
+                    onClick = { },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = chipContainer,
+                        labelColor = chipLabel
+                    ),
+                    label = {
+                        Text(
+                            statusText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                )
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Order Items Summary
+            Text(
+                "${order.items.size} sản phẩm",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Tổng Cộng:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    order.totalPrice.formatPrice(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+private fun statusChipColors(
+    status: String,
+    c: ColorScheme
+): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
+    // Keep to theme-derived colors; use subtle, readable containers.
+    return when (status) {
+        Constants.ORDER_STATUS_PENDING, Constants.ORDER_STATUS_DELIVERING ->
+            c.tertiaryContainer to c.onTertiaryContainer
+
+        Constants.ORDER_STATUS_DONE ->
+            c.primaryContainer to c.onPrimaryContainer
+
+        Constants.ORDER_STATUS_CANCELLED ->
+            c.errorContainer to c.onErrorContainer
+
+        Constants.ORDER_STATUS_CONFIRMED ->
+            c.secondaryContainer to c.onSecondaryContainer
+
+        else ->
+            c.surfaceVariant to c.onSurfaceVariant
+    }
+}
+
+private fun getStatusText(status: String): String {
+    return when (status) {
+        Constants.ORDER_STATUS_PENDING -> "Chờ xác nhận"
+        Constants.ORDER_STATUS_CONFIRMED -> "Đã xác nhận"
+        Constants.ORDER_STATUS_DELIVERING -> "Đang giao"
+        Constants.ORDER_STATUS_DONE -> "Đã giao"
+        Constants.ORDER_STATUS_CANCELLED -> "Đã hủy"
+        else -> "Không rõ"
+    }
+}
+
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\ProductDetailScreen.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
+import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
+import com.vohuy.mixueapp.utils.formatPrice
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProductDetailScreen(
+    navController: NavController,
+    productId: String,
+    productViewModel: ProductViewModel? = null,
+    cartViewModel: CartViewModel? = null,
+) {
+    val productVm = productViewModel ?: viewModel<ProductViewModel>()
+    val cartVm = cartViewModel ?: viewModel<CartViewModel>()
+
+    // Load product by id once when entering screen / when id changes
+    LaunchedEffect(productId) {
+        if (productId.isNotBlank()) {
+            productVm.loadProductById(productId)
+        }
+    }
+
+    val product by productVm.selectedProduct.observeAsState(null)
+    var quantity by remember { mutableStateOf(1) }
+
+    val sheetShape = remember { RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Chi Tiết Sản Phẩm") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = 6.dp,
+                shadowElevation = 10.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val p = product
+                            if (p != null) {
+                                cartVm.addItem(p, quantity)
+                                navController.navigate(Routes.CART)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = product != null
+                    ) {
+                        Text(
+                            "Thêm Vào Giỏ Hàng",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Hero image (edge-to-edge)
+                AsyncImage(
+                    model = product?.imageUrl.orEmpty(),
+                    contentDescription = product?.name ?: "Product Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
+
+                // spacer so the sheet doesn't get clipped by bottom bar
+                Spacer(modifier = Modifier.height(96.dp))
+            }
+
+            // Overlapping bottom-sheet-like info surface
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                shape = sheetShape,
+                tonalElevation = 2.dp,
+                shadowElevation = 12.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp)
+                ) {
+                    if (product == null) {
+                        Text(
+                            text = "Đang tải sản phẩm...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    Text(
+                        text = product?.name.orEmpty(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = (product?.price ?: 0.0).formatPrice(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Mô tả",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = product?.description.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Quantity selector pill
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Số lượng",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        IconButton(
+                            onClick = { if (quantity > 1) quantity-- },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                        }
+
+                        Text(
+                            text = quantity.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 14.dp)
+                        )
+
+                        IconButton(
+                            onClick = { quantity++ },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Increase",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    // Extra gap so scrolling content doesn't collide with bottomBar
+                    Spacer(modifier = Modifier.height(76.dp))
+                }
+            }
+        }
+    }
+}
+
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\screens\ScreensIndex.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.screens
+
+// This file centralizes all screen exports for easy importing
+// Import individual screens from their respective files:
+//
+// - LoginScreen from LoginScreen.kt
+// - HomeScreen, ProductCard from HomeScreen.kt
+// - ProductDetailScreen from ProductDetailScreen.kt
+// - CartScreen, CartItemCard from CartScreen.kt
+// - OrderHistoryScreen, OrderCard from OrderHistoryScreen.kt
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\theme\Color.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Light theme colors
+val Purple80 = Color(0xFFD0BCFF)
+val PurpleGrey80 = Color(0xFFCCC2DC)
+val Pink80 = Color(0xFFEFB8C8)
+
+// Dark theme colors
+val Purple40 = Color(0xFF6650a4)
+val PurpleGrey40 = Color(0xFF625b71)
+val Pink40 = Color(0xFF7D5260)
+
+// Mixue brand colors
+val MixueRed = Color(0xFFE63946)
+val MixueGreen = Color(0xFF06A77D)
+val MixueOrange = Color(0xFFFFA500)
+val MixueYellow = Color(0xFFFFD60A)
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\theme\Theme.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.theme
+
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+
+// Map màu thương hiệu vào hệ thống Material 3
+private val LightColorScheme = lightColorScheme(
+    primary = MixueRed, // Đỏ Mixue làm màu chủ đạo (TopBar, Nút bấm, Text nổi bật)
+    onPrimary = Color.White, // Chữ trên nền đỏ sẽ màu trắng
+    secondary = MixueGreen,
+    tertiary = MixueOrange,
+    background = Color(0xFFF8F9FA), // Màu nền xám nhạt cho App giống ShopeeFood
+    surface = Color.White, // Màu nền của các Card (Thẻ)
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = MixueRed,
+    secondary = MixueGreen,
+    tertiary = MixueOrange,
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+)
+
+@Composable
+fun MixueOrderAppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false, // TẮT dynamic color để ép máy dùng màu Mixue thay vì màu hình nền điện thoại
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\theme\Type.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+// Set of Material typography styles to start with
+val Typography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    ),
+)
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\viewmodel\AuthViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseViewModel
+import com.vohuy.mixueapp.data.model.User
+import com.vohuy.mixueapp.data.repository.AuthRepository
+import com.vohuy.mixueapp.utils.Result
+
+/**
+ * AuthViewModel - Xử lý logic xác thực
+ * Kế thừa BaseViewModel để quản lý isLoading, errorMessage, successMessage chung
+ */
+class AuthViewModel : BaseViewModel() {
+
+    private val repository = AuthRepository()
+
+    private val _currentUser = MutableLiveData<User?>()
+    val currentUser: LiveData<User?> = _currentUser
+
+    // UI state: Login/Register tabs are merged in LoginScreen.
+    private val _isLoginTab = MutableLiveData(true)
+    val isLoginTab: LiveData<Boolean> = _isLoginTab
+
+    fun setLoginTab(isLogin: Boolean) {
+        _isLoginTab.value = isLogin
+        // Clear old messages when switching modes
+        clearMessages()
+    }
+
+    /**
+     * Helper for navigation: check current FirebaseAuth state.
+     */
+    fun repositoryIsUserLoggedIn(): Boolean = repository.isUserLoggedIn()
+
+    /**
+     * Đăng ký người dùng mới
+     */
+    fun registerUser(email: String, password: String, fullName: String) {
+        setLoading(true)
+        repository.registerUser(email, password, fullName).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    // Repository signs out after creating the account to enforce email verification.
+                    // Do NOT set _currentUser here, otherwise UI might navigate to HOME incorrectly.
+                    _currentUser.value = null
+                    setSuccess("Đăng ký thành công! Vui lòng kiểm tra Email để xác minh trước khi đăng nhập.")
+                    _isLoginTab.value = true
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Đăng ký thất bại")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Đăng nhập
+     */
+    fun loginUser(email: String, password: String) {
+        setLoading(true)
+        repository.loginUser(email, password).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _currentUser.value = result.data
+                    setSuccess("Đăng nhập thành công!")
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Đăng nhập thất bại")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Đăng xuất
+     */
+    fun logoutUser() {
+        setLoading(true)
+        repository.logoutUser().observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _currentUser.value = null
+                    setSuccess("Đã đăng xuất")
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Đăng xuất thất bại")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Lấy thông tin user hiện tại
+     */
+    fun fetchCurrentUser() {
+        repository.getCurrentUser().observeForever { user ->
+            _currentUser.value = user
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\viewmodel\CartViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseViewModel
+import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.data.model.Product
+
+/**
+ * CartViewModel - Xử lý logic giỏ hàng
+ * Kế thừa BaseViewModel để quản lý isLoading, errorMessage, successMessage chung
+ */
+class CartViewModel : BaseViewModel() {
+
+    private val _cartItems = MutableLiveData<MutableList<OrderItem>>(mutableListOf())
+    val cartItems: LiveData<MutableList<OrderItem>> = _cartItems
+
+    private val _totalPrice = MutableLiveData<Double>(0.0)
+    val totalPrice: LiveData<Double> = _totalPrice
+
+    /**
+     * Thêm sản phẩm vào giỏ
+     */
+    fun addItem(product: Product, quantity: Int = 1) {
+        val currentItems = _cartItems.value ?: mutableListOf()
+        val existingItem = currentItems.find { it.productId == product.id }
+
+        if (existingItem != null) {
+            // Nếu sản phẩm đã có trong giỏ, tăng số lượng
+            existingItem.apply {
+                this.quantity += quantity
+            }
+        } else {
+            // Thêm sản phẩm mới vào giỏ
+            currentItems.add(
+                OrderItem(
+                    id = product.id,
+                    productId = product.id,
+                    productName = product.name,
+                    quantity = quantity,
+                    pricePerUnit = product.price,
+                    productImage = product.imageUrl,
+                )
+            )
+        }
+
+        _cartItems.value = ArrayList(currentItems)
+        updateTotalPrice()
+    }
+
+    /**
+     * Xóa sản phẩm khỏi giỏ
+     */
+    fun removeItem(productId: String) {
+        val currentItems = _cartItems.value ?: mutableListOf()
+        currentItems.removeAll { it.productId == productId }
+        _cartItems.value = ArrayList(currentItems)
+        updateTotalPrice()
+    }
+
+    /**
+     * Xóa sản phẩm khỏi giỏ (alias cho Compose)
+     */
+    fun removeFromCart(itemId: String) {
+        removeItem(itemId)
+    }
+
+    /**
+     * Cập nhật số lượng sản phẩm
+     */
+    fun updateItemQuantity(productId: String, quantity: Int) {
+        val currentItems = _cartItems.value ?: mutableListOf()
+        val item = currentItems.find { it.productId == productId }
+        if (item != null) {
+            if (quantity <= 0) {
+                removeItem(productId)
+            } else {
+                item.quantity = quantity
+                _cartItems.value = ArrayList(currentItems)
+                updateTotalPrice()
+            }
+        }
+    }
+
+    /**
+     * Xóa tất cả sản phẩm khỏi giỏ
+     */
+    fun clearCart() {
+        _cartItems.value = mutableListOf()
+        _totalPrice.value = 0.0
+    }
+
+    /**
+     * Tính tổng tiền
+     */
+    private fun updateTotalPrice() {
+        val total = _cartItems.value?.sumOf { it.getTotalPrice() } ?: 0.0
+        _totalPrice.value = total
+    }
+
+    /**
+     * Kiểm tra giỏ hàng có trống không
+     */
+    fun isCartEmpty(): Boolean {
+        return _cartItems.value?.isEmpty() ?: true
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\viewmodel\HomeViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import com.vohuy.mixueapp.base.BaseViewModel
+import com.vohuy.mixueapp.data.model.Product
+import com.vohuy.mixueapp.data.repository.ProductRepository
+import com.vohuy.mixueapp.utils.Result
+
+/**
+ * HomeViewModel - Xử lý logic cho Home Screen
+ */
+class HomeViewModel : BaseViewModel() {
+
+    private val repository = ProductRepository()
+
+    private val _products = MutableLiveData<List<Product>>()
+    val products: LiveData<List<Product>> = _products
+
+    init {
+        loadAllProducts()
+    }
+
+    fun loadAllProducts() {
+        setLoading(true)
+        val liveData = repository.getAllProducts()
+        val observer = object : Observer<Result<List<Product>>> {
+            override fun onChanged(value: Result<List<Product>>) {
+                when (value) {
+                    is Result.Success -> {
+                        _products.value = value.data
+                        setLoading(false)
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Error -> {
+                        setError(value.exception.message ?: "Không thể tải sản phẩm")
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Loading -> setLoading(true)
+                }
+            }
+        }
+        liveData.observeForever(observer)
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\viewmodel\OrderViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseViewModel
+import com.vohuy.mixueapp.data.model.Order
+import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.data.repository.OrderRepository
+import com.vohuy.mixueapp.utils.Constants
+import com.vohuy.mixueapp.utils.Result
+import com.google.firebase.firestore.ListenerRegistration
+/**
+ * OrderViewModel - Xử lý logic đơn hàng
+ * Kế thừa BaseViewModel để quản lý isLoading, errorMessage, successMessage chung
+ */
+class OrderViewModel : BaseViewModel() {
+
+    private val repository = OrderRepository()
+
+    private var ordersListener: ListenerRegistration? = null
+
+    private val _userOrders = MutableLiveData<List<Order>>()
+    val userOrders: LiveData<List<Order>> = _userOrders
+
+    private val _orders = MutableLiveData<List<Order>>()
+    val orders: LiveData<List<Order>> = _orders
+
+    private val _selectedOrder = MutableLiveData<Order?>()
+    val selectedOrder: LiveData<Order?> = _selectedOrder
+
+    private val _createdOrderId = MutableLiveData<String>()
+    val createdOrderId: LiveData<String> = _createdOrderId
+
+    /**
+     * Tạo đơn hàng mới
+     */
+    fun createOrder(userId: String, items: List<OrderItem>) {
+        if (items.isEmpty()) {
+            setError("Giỏ hàng trống")
+            return
+        }
+
+        setLoading(true)
+        val calculatedTotal = items.sumOf { it.getTotalPrice() }
+
+        val order = Order(
+            userId = userId,
+            items = items,
+            status = Constants.ORDER_STATUS_PENDING,
+            totalPrice = calculatedTotal
+        )
+
+        repository.createOrder(order).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _createdOrderId.value = result.data
+                    setSuccess("Đơn hàng được tạo thành công!")
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tạo đơn hàng")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Tải danh sách đơn hàng của user
+     */
+    fun loadUserOrders(userId: String) {
+        setLoading(true)
+        ordersListener?.remove()
+
+        repository.getUserOrders(userId).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _userOrders.value = result.data
+                    _orders.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải đơn hàng")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    fun resetOrderState() {
+        _createdOrderId.value = ""
+        clearMessages()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        ordersListener?.remove() // Dọn rác khi ViewModel bị hủy
+    }
+
+    /**
+     * Tải đơn hàng theo ID
+     */
+    fun loadOrderById(orderId: String) {
+        setLoading(true)
+        repository.getOrderById(orderId).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _selectedOrder.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải đơn hàng")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Cập nhật trạng thái đơn hàng
+     */
+    fun updateOrderStatus(orderId: String, status: String) {
+        setLoading(true)
+        repository.updateOrderStatus(orderId, status).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    setSuccess("Cập nhật trạng thái thành công!")
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể cập nhật trạng thái")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Hủy đơn hàng
+     */
+    fun cancelOrder(orderId: String) {
+        updateOrderStatus(orderId, Constants.ORDER_STATUS_CANCELLED)
+    }
+}
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\ui\viewmodel\ProductViewModel.kt
+==================================================
+```
+package com.vohuy.mixueapp.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.vohuy.mixueapp.base.BaseViewModel
+import com.vohuy.mixueapp.data.model.Product
+import com.vohuy.mixueapp.data.repository.ProductRepository
+import com.vohuy.mixueapp.utils.Result
+
+/**
+ * ProductViewModel - Xử lý logic sản phẩm
+ * Kế thừa BaseViewModel để quản lý isLoading, errorMessage, successMessage chung
+ */
+class ProductViewModel : BaseViewModel() {
+
+    private val repository = ProductRepository()
+
+    private val _products = MutableLiveData<List<Product>>()
+    val products: LiveData<List<Product>> = _products
+
+    private val _selectedProduct = MutableLiveData<Product?>()
+    val selectedProduct: LiveData<Product?> = _selectedProduct
+
+    private val _productsByCategory = MutableLiveData<List<Product>>()
+    val productsByCategory: LiveData<List<Product>> = _productsByCategory
+
+    private val _createdProductId = MutableLiveData<String?>()
+    val createdProductId: LiveData<String?> = _createdProductId
+
+    /**
+     * Tải tất cả sản phẩm
+     */
+    fun loadAllProducts() {
+        setLoading(true)
+        repository.getAllProducts().observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _products.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải sản phẩm")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Tải sản phẩm theo danh mục
+     */
+    fun loadProductsByCategory(category: String) {
+        setLoading(true)
+        repository.getProductsByCategory(category).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _productsByCategory.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải sản phẩm")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Tải sản phẩm theo ID
+     */
+    fun loadProductById(productId: String) {
+        setLoading(true)
+        repository.getProductById(productId).observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _selectedProduct.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải sản phẩm")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+
+    /**
+     * Tải sản phẩm khả dụng
+     */
+    fun loadAvailableProducts() {
+        setLoading(true)
+        repository.getAvailableProducts().observeForever { result ->
+            when (result) {
+                is Result.Success -> {
+                    _products.value = result.data
+                    setLoading(false)
+                }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải sản phẩm")
+                }
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\Constants.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+/**
+ * Constants - Chứa tất cả hằng số của ứng dụng
+ * DRY Principle: Khi cần thay đổi, chỉnh sửa ở một nơi
+ */
+object Constants {
+
+    // ========== FIREBASE COLLECTIONS ==========
+    const val COLLECTION_USERS = "users"
+    const val COLLECTION_PRODUCTS = "products"
+    const val COLLECTION_ORDERS = "orders"
+
+    // ========== USER FIELDS ==========
+    const val FIELD_USER_ID = "id"
+    const val FIELD_USER_EMAIL = "email"
+    const val FIELD_USER_FULL_NAME = "fullName"
+    const val FIELD_USER_PHONE = "phoneNumber"
+    const val FIELD_USER_ROLE = "role"
+    const val FIELD_USER_CREATED_AT = "createdAt"
+
+    // ========== PRODUCT FIELDS ==========
+    const val FIELD_PRODUCT_ID = "id"
+    const val FIELD_PRODUCT_NAME = "name"
+    const val FIELD_PRODUCT_DESCRIPTION = "description"
+    const val FIELD_PRODUCT_PRICE = "price"
+    const val FIELD_PRODUCT_IMAGE_URL = "imageUrl"
+    const val FIELD_PRODUCT_IMAGE_PATH = "imagePath"
+    const val FIELD_PRODUCT_CATEGORY = "category"
+    const val FIELD_PRODUCT_AVAILABLE = "available"
+
+    // ========== ORDER FIELDS ==========
+    const val FIELD_ORDER_ID = "id"
+    const val FIELD_ORDER_USER_ID = "userId"
+    const val FIELD_ORDER_ITEMS = "items"
+    const val FIELD_ORDER_TOTAL_PRICE = "totalPrice"
+    const val FIELD_ORDER_STATUS = "status"
+    const val FIELD_ORDER_CREATED_AT = "createdAt"
+
+    // ========== USER ROLES ==========
+    const val ROLE_USER = "USER"
+    const val ROLE_ADMIN = "ADMIN"
+
+    // ========== ORDER STATUS ==========
+    const val ORDER_STATUS_PENDING = "PENDING"
+    const val ORDER_STATUS_CONFIRMED = "CONFIRMED"
+    const val ORDER_STATUS_DELIVERING = "DELIVERING"
+    const val ORDER_STATUS_DONE = "DONE"
+    const val ORDER_STATUS_CANCELLED = "CANCELLED"
+
+    // ========== PRODUCT CATEGORIES ==========
+    const val CATEGORY_ICE_CREAM = "Kem"
+    const val CATEGORY_TEA = "Trà Sữa"
+    const val CATEGORY_DRINK = "Nước"
+
+    // ========== VALIDATION ==========
+    const val MIN_PASSWORD_LENGTH = 6
+    const val MIN_PHONE_LENGTH = 10
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\ErrorHandler.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+/**
+ * ErrorHandler - Tập trung xử lý lỗi Firebase
+ * DRY Principle: Convert Firebase exceptions thành user-friendly messages
+ * Tránh viết lại error handling logic ở nhiều nơi
+ */
+object ErrorHandler {
+
+    fun getErrorMessage(exception: Exception?): String {
+        return when {
+            exception == null -> "Có lỗi xảy ra"
+            exception.message?.contains("PERMISSION_DENIED") == true -> 
+                "Bạn không có quyền thực hiện hành động này"
+            exception.message?.contains("NOT_FOUND") == true -> 
+                "Không tìm thấy dữ liệu"
+            exception.message?.contains("ALREADY_EXISTS") == true -> 
+                "Dữ liệu đã tồn tại"
+            exception.message?.contains("INVALID_ARGUMENT") == true -> 
+                "Dữ liệu không hợp lệ"
+            exception.message?.contains("UNAUTHENTICATED") == true -> 
+                "Vui lòng đăng nhập lại"
+            exception.message?.contains("UNAVAILABLE") == true -> 
+                "Dịch vụ tạm thời không khả dụng"
+            exception.message?.contains("NETWORK") == true -> 
+                "Kiểm tra kết nối Internet"
+            exception.message?.contains("email already in use") == true -> 
+                "Email này đã được sử dụng"
+            exception.message?.contains("invalid email") == true -> 
+                "Email không hợp lệ"
+            exception.message?.contains("wrong password") == true -> 
+                "Mật khẩu không chính xác"
+            exception.message?.contains("no user record") == true -> 
+                "Người dùng không tồn tại"
+            else -> exception.message ?: "Có lỗi xảy ra"
+        }
+    }
+
+    fun getAuthErrorMessage(errorCode: String?): String {
+        return when (errorCode) {
+            "ERROR_USER_NOT_FOUND" -> "Người dùng không tồn tại"
+            "ERROR_WRONG_PASSWORD" -> "Mật khẩu không chính xác"
+            "ERROR_INVALID_EMAIL" -> "Email không hợp lệ"
+            "ERROR_EMAIL_ALREADY_IN_USE" -> "Email này đã được sử dụng"
+            "ERROR_WEAK_PASSWORD" -> "Mật khẩu quá yếu (tối thiểu 6 ký tự)"
+            "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" -> 
+                "Tài khoản đã tồn tại với thông tin xác thực khác"
+            else -> "Có lỗi xảy ra. Vui lòng thử lại"
+        }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\Extensions.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import java.text.NumberFormat
+import java.util.*
+
+/**
+ * Extension Functions - Hàm tiện ích tái sử dụng
+ * DRY Principle: Viết một lần, sử dụng ở nhiều nơi
+ */
+
+/**
+ * Extension cho Fragment để show Toast
+ */
+fun Fragment.showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+    Toast.makeText(requireContext(), message, duration).show()
+}
+
+/**
+ * Định dạng giá tiền VND
+ * Ví dụ: 50000.0 -> "50.000 ₫"
+ */
+fun Double.formatPrice(): String {
+    val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
+    return "${formatter.format(this)} ₫"
+}
+
+/**
+ * Định dạng giá tiền VND (Int)
+ */
+fun Int.formatPrice(): String {
+    return this.toDouble().formatPrice()
+}
+
+/**
+ * Check xem string có phải email hợp lệ không
+ */
+fun String.isValidEmail(): Boolean {
+    return this.matches(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"))
+}
+
+/**
+ * Check xem string có phải số điện thoại hợp lệ không
+ */
+fun String.isValidPhone(): Boolean {
+    return this.length >= Constants.MIN_PHONE_LENGTH && this.all { it.isDigit() }
+}
+
+/**
+ * Check xem string có đủ độ dài mật khẩu không
+ */
+fun String.isValidPassword(): Boolean {
+    return this.length >= Constants.MIN_PASSWORD_LENGTH
+}
+
+/**
+ * Trim và remove extra spaces
+ */
+fun String.cleanInput(): String {
+    return this.trim().replace(Regex("\\s+"), " ")
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\FirebaseConnectionTester.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+
+/**
+ * FirebaseConnectionTester - Kiểm tra kết nối Firebase
+ * Sử dụng để test tất cả Firebase services
+ */
+object FirebaseConnectionTester {
+
+    private const val TAG = "FirebaseConnectionTest"
+
+    /**
+     * Test tất cả Firebase connections
+     */
+    fun testAllConnections() {
+        Log.d(TAG, "========== TESTING FIREBASE CONNECTIONS ==========")
+        testFirestoreConnection()
+        testAuthConnection()
+        testStorageConnection()
+        Log.d(TAG, "========== TEST COMPLETED ==========")
+    }
+
+    /**
+     * Test Firestore connection
+     */
+    private fun testFirestoreConnection() {
+        val firestore = FirebaseFirestore.getInstance()
+        
+        try {
+            val docId = "test_${System.currentTimeMillis()}"
+            firestore.collection("test_connection")
+                .document(docId)
+                .set(mapOf(
+                    "timestamp" to System.currentTimeMillis(),
+                    "status" to "testing",
+                    "message" to "Firebase connection test"
+                ))
+                .addOnSuccessListener {
+                    Log.d(TAG, "✅ FIRESTORE: Connection SUCCESS")
+                    // Xóa document test
+                    firestore.collection("test_connection")
+                        .document(docId)
+                        .delete()
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "❌ FIRESTORE: Connection FAILED - ${e.message}")
+                    Log.e(TAG, "Exception: ", e)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ FIRESTORE: Exception - ${e.message}", e)
+        }
+    }
+
+    /**
+     * Test Firebase Auth connection
+     */
+    private fun testAuthConnection() {
+        try {
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+            
+            if (auth != null) {
+                Log.d(TAG, "✅ AUTH: Instance initialized")
+                if (currentUser != null) {
+                    Log.d(TAG, "👤 AUTH: Current user = ${currentUser.email}")
+                } else {
+                    Log.d(TAG, "👤 AUTH: No user logged in (OK for testing)")
+                }
+            } else {
+                Log.e(TAG, "❌ AUTH: Instance is NULL")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ AUTH: Exception - ${e.message}", e)
+        }
+    }
+
+    /**
+     * Test Firebase Storage connection
+     */
+    private fun testStorageConnection() {
+        try {
+            val storage = FirebaseStorage.getInstance()
+            
+            if (storage != null) {
+                Log.d(TAG, "✅ STORAGE: Instance initialized")
+                
+                // Test write access
+                val testRef = storage.reference.child("test_connection/test_${System.currentTimeMillis()}.txt")
+                testRef.putBytes("Firebase Storage Test".toByteArray())
+                    .addOnSuccessListener {
+                        Log.d(TAG, "✅ STORAGE: Upload test SUCCESS")
+                        // Delete test file
+                        testRef.delete()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "❌ STORAGE: Upload test FAILED - ${e.message}")
+                    }
+            } else {
+                Log.e(TAG, "❌ STORAGE: Instance is NULL")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ STORAGE: Exception - ${e.message}", e)
+        }
+    }
+
+    /**
+     * Get connection status summary
+     */
+    fun getConnectionStatus(): String {
+        val sb = StringBuilder()
+        sb.append("\n=== FIREBASE CONNECTION STATUS ===\n")
+        
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            sb.append("✅ Firestore: Initialized\n")
+        } catch (e: Exception) {
+            sb.append("❌ Firestore: Failed - ${e.message}\n")
+        }
+        
+        try {
+            val auth = FirebaseAuth.getInstance()
+            sb.append("✅ Auth: Initialized\n")
+        } catch (e: Exception) {
+            sb.append("❌ Auth: Failed - ${e.message}\n")
+        }
+        
+        try {
+            val storage = FirebaseStorage.getInstance()
+            sb.append("✅ Storage: Initialized\n")
+        } catch (e: Exception) {
+            sb.append("❌ Storage: Failed - ${e.message}\n")
+        }
+        
+        sb.append("===================================\n")
+        return sb.toString()
+    }
+
+    /**
+     * Test specific Firestore collection
+     */
+    fun testCollectionAccess(collectionName: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        
+        firestore.collection(collectionName)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                Log.d(TAG, "✅ Collection '$collectionName': Readable (${snapshot.size()} documents)")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Collection '$collectionName': Not accessible - ${e.message}")
+            }
+    }
+
+    /**
+     * Test user authentication
+     */
+    fun testUserAuthentication(email: String, password: String) {
+        val auth = FirebaseAuth.getInstance()
+        
+        Log.d(TAG, "Testing authentication with: $email")
+        
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener { authResult ->
+                Log.d(TAG, "✅ AUTH: Login successful - ${authResult.user?.email}")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ AUTH: Login failed - ${e.message}")
+            }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\FirebaseHealthCheck.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import android.util.Log
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+
+/**
+ * FirebaseHealthCheck
+ *
+ * Minimal, production-safe checks to confirm Firebase is configured correctly.
+ *
+ * Notes:
+ * - This project uses Supabase for images, so we do NOT test Firebase Storage here.
+ * - Firestore check writes a tiny doc under a dedicated collection and then deletes it.
+ */
+object FirebaseHealthCheck {
+    private const val TAG = "FirebaseHealthCheck"
+
+    /**
+     * Call this once from debug builds / manual testing.
+     */
+    fun runAll() {
+        logFirebaseApps()
+        testAuthInstance()
+        testFirestoreReadWrite()
+    }
+
+    private fun logFirebaseApps() {
+        try {
+            val apps = FirebaseApp.getApps(FirebaseApp.getInstance().applicationContext)
+            Log.d(TAG, "Firebase apps initialized: ${apps.map { it.name }}")
+        } catch (e: Exception) {
+            Log.e(TAG, "FirebaseApp not initialized: ${e.message}", e)
+        }
+    }
+
+    private fun testAuthInstance() {
+        try {
+            val auth = FirebaseAuth.getInstance()
+            Log.d(TAG, "✅ Auth initialized. currentUser=${auth.currentUser?.uid ?: "(none)"}")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Auth init failed: ${e.message}", e)
+        }
+    }
+
+    private fun testFirestoreReadWrite() {
+        val firestore = FirebaseFirestore.getInstance()
+        val docId = "android_${System.currentTimeMillis()}"
+        val docRef = firestore.collection("healthcheck").document(docId)
+
+        docRef.set(
+            mapOf(
+                "timestamp" to System.currentTimeMillis(),
+                "platform" to "android",
+                "status" to "ok",
+            )
+        )
+            .addOnSuccessListener {
+                Log.d(TAG, "✅ Firestore write OK")
+                docRef.get()
+                    .addOnSuccessListener { snap ->
+                        Log.d(TAG, "✅ Firestore read OK. exists=${snap.exists()}")
+                        docRef.delete().addOnSuccessListener {
+                            Log.d(TAG, "✅ Firestore delete OK")
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "❌ Firestore read failed: ${e.message}", e)
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Firestore write failed: ${e.message}", e)
+            }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\FirestoreSampleDataSeeder.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
+import com.vohuy.mixueapp.data.model.Product
+
+/**
+ * FirestoreSampleDataSeeder
+ *
+ * Utility for DEV/DEBUG only: upsert a small set of sample documents into Firestore.
+ *
+ * Why:
+ * - Firestore has no "tables"; collections only appear after a successful write.
+ * - If your UI shows "Không tìm thấy dữ liệu", seeding helps confirm reads are working.
+ *
+ * Notes:
+ * - This class only writes to the `products` collection used by the app.
+ * - Keep rules open only temporarily when testing.
+ */
+object FirestoreSampleDataSeeder {
+    private const val TAG = "FirestoreSeeder"
+
+    private val sampleProducts: List<Product> = listOf(
+        Product(
+            id = "seed_kem_dau",
+            name = "Kem dâu",
+            description = "Dữ liệu mẫu (seed) từ app",
+            price = 25000.0,
+            imageUrl = "https://picsum.photos/seed/kemdau/600/400",
+            imagePath = "",
+            category = Constants.CATEGORY_ICE_CREAM,
+            available = true,
+        ),
+        Product(
+            id = "seed_tra_sua_duong_den",
+            name = "Trà sữa đường đen",
+            description = "Dữ liệu mẫu (seed) từ app",
+            price = 30000.0,
+            imageUrl = "https://picsum.photos/seed/trasua/600/400",
+            imagePath = "",
+            category = Constants.CATEGORY_TEA,
+            available = true,
+        ),
+        Product(
+            id = "seed_nuoc_cam",
+            name = "Nước cam",
+            description = "Dữ liệu mẫu (seed) từ app",
+            price = 20000.0,
+            imageUrl = "https://picsum.photos/seed/nuoccam/600/400",
+            imagePath = "",
+            category = Constants.CATEGORY_DRINK,
+            available = true,
+        ),
+    )
+
+    /**
+     * Upsert products with fixed IDs so you can run multiple times without duplicating.
+     */
+    fun seedProducts(
+        firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+        onDone: ((success: Boolean, message: String) -> Unit)? = null,
+    ) {
+        Log.d(TAG, "Seeding ${sampleProducts.size} products...")
+        val batch = firestore.batch()
+        sampleProducts.forEach { p ->
+            val ref = firestore.collection(Constants.COLLECTION_PRODUCTS).document(p.id)
+            batch.set(ref, p)
+        }
+
+        batch.commit()
+            .addOnSuccessListener {
+                Log.d(TAG, "✅ Seed products OK")
+                onDone?.invoke(true, "Seed products OK")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Seed products FAILED: ${e.message}", e)
+                onDone?.invoke(false, "Seed products FAILED: ${e.message}")
+            }
+    }
+
+    /**
+     * Quick read verification: logs how many docs are found.
+     */
+    fun verifyProductsReadable(
+        firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+        onDone: ((success: Boolean, message: String) -> Unit)? = null,
+    ) {
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .limit(10)
+            .get()
+            .addOnSuccessListener { snap ->
+                Log.d(TAG, "✅ Read products OK. size=${snap.size()}")
+                onDone?.invoke(true, "Read products OK. size=${snap.size()}")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Read products FAILED: ${e.message}", e)
+                onDone?.invoke(false, "Read products FAILED: ${e.message}")
+            }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\Result.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+/**
+ * Sealed class Result - Wrapper class cho async operations
+ * Giúp xử lý kết quả: Success, Error, Loading
+ * DRY Principle: Tránh kiểm tra null ở nhiều nơi
+ */
+sealed class Result<T> {
+    data class Success<T>(val data: T) : Result<T>()
+    data class Error<T>(val exception: Exception) : Result<T>()
+    class Loading<T> : Result<T>()
+}
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\SupabaseConfigValidator.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import com.vohuy.mixueapp.BuildConfig
+
+/**
+ * Small helper to validate Supabase config is present at runtime.
+ * Useful during early integration.
+ */
+object SupabaseConfigValidator {
+    fun validateOrThrow() {
+        require(BuildConfig.SUPABASE_URL.isNotBlank()) { "SUPABASE_URL is missing" }
+        require(BuildConfig.SUPABASE_ANON_KEY.isNotBlank()) { "SUPABASE_ANON_KEY is missing" }
+        require(BuildConfig.SUPABASE_BUCKET.isNotBlank()) { "SUPABASE_BUCKET is missing" }
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\main\java\com\vohuy\mixueapp\utils\UriExtensions.kt
+==================================================
+```
+package com.vohuy.mixueapp.utils
+
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import java.io.IOException
+
+/**
+ * Utilities for working with [Uri] returned by the system picker.
+ */
+
+@Throws(IOException::class)
+fun Uri.readBytes(context: Context): ByteArray {
+    val resolver: ContentResolver = context.contentResolver
+    resolver.openInputStream(this)?.use { input ->
+        return input.readBytes()
+    }
+    throw IOException("Unable to open InputStream for uri=$this")
+}
+
+
+```
+
+
+==================================================
+### FILE: app\src\test\java\com\vohuy\mixueapp\ExampleUnitTest.kt
+==================================================
+```
+package com.vohuy.mixueapp
+
+import org.junit.Test
+
+import org.junit.Assert.*
+
+/**
+ * Example local unit test, which will execute on the development machine (host).
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+class ExampleUnitTest {
+    @Test
+    fun addition_isCorrect() {
+        assertEquals(4, 2 + 2)
+    }
+}
+```
+
+
+==================================================
+### FILE: app\src\test\java\com\vohuy\mixueapp\SupabaseUrlFormatTest.kt
+==================================================
+```
+package com.vohuy.mixueapp
+
+import com.vohuy.mixueapp.data.repository.ImageRepository
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class SupabaseUrlFormatTest {
+
+    @Test
+    fun publicUrlFormat_isCorrect() {
+        val baseUrl = "https://example.supabase.co"
+        val bucket = "bucket"
+        val path = "products/abc/main.jpg"
+
+        val expected = "$baseUrl/storage/v1/object/public/$bucket/$path"
+        val actual = "$baseUrl/storage/v1/object/public/$bucket/$path"
+
+        assertEquals(expected, actual)
+    }
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\firebase-config.php
+==================================================
+```
+<?php
+// Outputs Firebase Web config as JSON.
+// Note: Firebase Web config is not a secret. Real security is enforced via Firebase Rules.
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+// Locate the Android google-services.json to reuse existing project values.
+$googleServicesPath = __DIR__ . '/../app/google-services.json';
+if (!file_exists($googleServicesPath)) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'google-services.json not found',
+        'path' => $googleServicesPath,
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+$raw = file_get_contents($googleServicesPath);
+$data = json_decode($raw, true);
+if (!is_array($data)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Invalid google-services.json'], JSON_PRETTY_PRINT);
+    exit;
+}
+
+$projectId = $data['project_info']['project_id'] ?? '';
+$storageBucket = $data['project_info']['storage_bucket'] ?? '';
+$senderId = $data['project_info']['project_number'] ?? '';
+$apiKey = $data['client'][0]['api_key'][0]['current_key'] ?? '';
+
+if ($projectId === '' || $apiKey === '') {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Missing project_id or api_key in google-services.json',
+        'projectId' => $projectId,
+        'apiKeyPresent' => $apiKey !== '',
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+// Derive common web fields.
+// authDomain normally is: <projectId>.firebaseapp.com
+$authDomain = $projectId . '.firebaseapp.com';
+
+// appId: web app id is not in google-services.json. For local testing we can omit it.
+// Firebase modular SDK works with apiKey/authDomain/projectId (appId recommended but not strictly required).
+// If you have a Web App in Firebase Console, replace this with the real appId.
+$appId = getenv('FIREBASE_WEB_APP_ID');
+if ($appId === false || $appId === '') {
+    $appId = 'REPLACE_WITH_WEB_APP_ID_IF_AVAILABLE';
+}
+
+echo json_encode([
+    'apiKey' => $apiKey,
+    'authDomain' => $authDomain,
+    'projectId' => $projectId,
+    'storageBucket' => $storageBucket,
+    'messagingSenderId' => $senderId,
+    'appId' => $appId,
+], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+
+```
+
+
+==================================================
+### FILE: web-admin\index.html
+==================================================
+```
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mixue Admin</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand__title">Mixue Admin</div>
+        <div class="brand__sub">Admin console (Firebase Firestore)</div>
+      </div>
+
+      <div class="userbar">
+        <div id="userInfo" class="userbar__info">Chưa đăng nhập</div>
+        <button id="btnLogout" class="btn btn--ghost" disabled>Đăng xuất</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card" id="cardLogin">
+        <h2>Xác thực Admin</h2>
+        <p class="muted">
+          Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được gán quyền <b>ADMIN</b>
+          tự động — nhưng bạn <b>bắt buộc phải XÁC MINH EMAIL</b> trước khi vào Admin Console.
+        </p>
+
+        <div class="tabs" style="margin-bottom: 16px;">
+          <button class="tab tab--active" id="tabModeLogin">Đăng nhập</button>
+          <button class="tab" id="tabModeRegister">Đăng ký</button>
+        </div>
+
+        <form id="authForm" class="form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Mật khẩu
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="row">
+            <button class="btn" type="submit" id="btnSubmitAuth">Đăng nhập</button>
+            <button class="btn btn--ghost" type="button" id="btnSendVerify" disabled>Gửi email xác minh</button>
+          </div>
+        </form>
+
+        <div id="verifyHint" class="muted small" style="margin-top: 8px;"></div>
+      </section>
+
+      <section class="card hidden" id="cardRole">
+        <h2>Quyền hiện tại</h2>
+        <div class="kv">
+          <div class="kv__k">UID</div>
+          <div class="kv__v" id="kvUid">-</div>
+          <div class="kv__k">Email</div>
+          <div class="kv__v" id="kvEmail">-</div>
+          <div class="kv__k">Role</div>
+          <div class="kv__v"><span id="kvRole" class="pill">-</span></div>
+        </div>
+      </section>
+
+      <section class="card hidden" id="cardHealth">
+        <h2>Healthcheck / Seed</h2>
+        <p class="muted">
+          Khu vực này để test nhanh (tuỳ chọn). Nếu cần seed/healthcheck thật, sẽ implement sau.
+        </p>
+        <div class="row">
+          <button class="btn" id="btnRunHealth">Chạy healthcheck</button>
+          <button class="btn btn--ghost" id="btnSeedProducts">Seed 3 products mẫu</button>
+          <button class="btn btn--ghost" id="btnClearLog">Clear log</button>
+        </div>
+        <pre id="healthLog" class="log"></pre>
+      </section>
+
+      <section class="card hidden" id="cardNotAdmin">
+        <h2>Không có quyền truy cập</h2>
+        <p class="muted">
+          Bạn chưa vào được Admin Console. Trong hầu hết trường hợp, nguyên nhân là bạn <b>chưa xác minh email</b>.
+          Hãy kiểm tra Inbox/Spam và bấm link xác minh, sau đó đăng xuất/đăng nhập lại.
+          <br />
+          Nếu bạn đã xác minh email mà vẫn bị chặn, hãy kiểm tra trong Firestore: <code>users/{uid}.role</code> phải là
+          <code>ADMIN</code>.
+        </p>
+      </section>
+
+      <section class="card hidden" id="cardAdmin">
+        <h2>Admin Console</h2>
+        <div class="tabs">
+          <button class="tab tab--active" data-tab="products">Products</button>
+          <button class="tab" data-tab="orders">Orders</button>
+        </div>
+
+        <div class="tabpane" id="tab-products">
+          <div class="row row--space">
+            <div>
+              <div class="muted">Collection: <code>products</code></div>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnReloadProducts">Reload</button>
+            </div>
+          </div>
+
+          <form id="productForm" class="form form--grid">
+            <label>
+              ID (để trống = tự sinh)
+              <input id="p_id" placeholder="p01" />
+            </label>
+            <label>
+              Tên
+              <input id="p_name" required />
+            </label>
+            <label>
+              Giá
+              <input id="p_price" type="number" min="0" step="1000" required />
+            </label>
+            <label>
+              Category
+              <input id="p_category" placeholder="Kem / Trà Sữa / Nước" required />
+            </label>
+            <label class="span2">
+              Description
+              <input id="p_description" />
+            </label>
+            <label>
+              Available
+              <select id="p_available">
+                <option value="true" selected>true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+            <label class="span2">
+              Image URL (optional)
+              <input id="p_imageUrl" placeholder="https://..." />
+            </label>
+
+            <label class="span2">
+              Upload ảnh (Supabase)
+              <input id="p_imageFile" type="file" accept="image/*" />
+              <span class="muted small">Chọn ảnh → upload → URL sẽ tự điền vào ô Image URL.</span>
+            </label>
+            <div class="row span2">
+              <button class="btn btn--ghost" type="button" id="btnUploadImage">Upload ảnh</button>
+              <span class="muted small" id="uploadStatus"></span>
+            </div>
+            <div class="row span2">
+              <button class="btn" type="submit" id="btnSaveProduct">Create/Update</button>
+              <button class="btn btn--ghost" type="button" id="btnResetProduct">Reset</button>
+            </div>
+          </form>
+
+          <div class="tablewrap">
+            <table class="table" id="productsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Category</th>
+                  <th>Available</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpane hidden" id="tab-orders">
+          <div class="row row--space">
+            <div>
+              <div class="muted">Collection: <code>orders</code></div>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnReloadOrders">Reload</button>
+            </div>
+          </div>
+          <div class="tablewrap">
+            <table class="table" id="ordersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>UserId</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>CreatedAt</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <div class="muted small">Serve bằng HTTP (localhost). Dữ liệu đồng bộ trực tiếp với Firebase Firestore.</div>
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
+
+```
+
+
+==================================================
+### FILE: web-admin\src\admin-orders.js
+==================================================
+```
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  doc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { db, COLLECTIONS } from "./firebase.js";
+
+export function listenOrders(max = 50, callback) {
+  const q = query(
+    collection(db, COLLECTIONS.orders),
+    orderBy("createdAt", "desc"),
+    limit(max)
+  );
+
+  // onSnapshot sẽ tự động gọi lại callback mỗi khi có người đặt đơn
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    callback(items);
+  });
+}
+
+export async function setOrderStatus(orderId, status) {
+  await updateDoc(doc(db, COLLECTIONS.orders, orderId), {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\admin-products.js
+==================================================
+```
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { db, COLLECTIONS } from "./firebase.js";
+
+export async function listProducts() {
+  // orderBy requires an index if field missing sometimes; fallback if needed.
+  const q = query(collection(db, COLLECTIONS.products), orderBy("name"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function upsertProduct(product) {
+  const id = (product.id || "").trim() || crypto.randomUUID();
+  const payload = {
+    ...product,
+    id,
+    price: Number(product.price ?? 0),
+    available: Boolean(product.available),
+    updatedAt: serverTimestamp(),
+  };
+  if (!payload.createdAt) payload.createdAt = serverTimestamp();
+
+  await setDoc(doc(db, COLLECTIONS.products, id), payload, { merge: true });
+  return id;
+}
+
+export async function deleteProduct(id) {
+  await deleteDoc(doc(db, COLLECTIONS.products, id));
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\auth.js
+==================================================
+```
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { auth, db, COLLECTIONS } from "./firebase.js";
+
+export function listenAuth(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+export async function login(email, password) {
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  return cred.user;
+}
+
+export async function logout() {
+  await signOut(auth);
+}
+
+
+export async function getUserRole(uid) {
+  const snap = await getDoc(doc(db, COLLECTIONS.users, uid));
+  if (!snap.exists()) return null;
+  return snap.data()?.role ?? null;
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\firebase.js
+==================================================
+```
+// Firebase Web SDK (Modular v9+)
+// IMPORTANT: Replace firebaseConfig with your project's config:
+// Firebase Console → Project settings → General → Your apps → Web app → Config
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+
+async function loadFirebaseConfig() {
+  // No-PHP mode: reuse Android google-services.json as a static JSON file.
+  // This allows running via python http.server.
+  // When served from repository root, the Android config is reachable at /app/google-services.json
+  const res = await fetch("/app/google-services.json", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Cannot load /app/google-services.json (HTTP ${res.status})`);
+  }
+  const gs = await res.json();
+
+  const projectId = gs?.project_info?.project_id;
+  const storageBucket = gs?.project_info?.storage_bucket;
+  const messagingSenderId = gs?.project_info?.project_number;
+  const apiKey = gs?.client?.[0]?.api_key?.[0]?.current_key;
+
+  if (!projectId || !apiKey) {
+    throw new Error("google-services.json missing project_id/api_key");
+  }
+
+  return {
+    apiKey,
+    authDomain: `${projectId}.firebaseapp.com`,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    // Web appId is optional for local dev; can be set later if you create a Web App in console.
+    appId: "WEB_APP_ID_NOT_SET",
+  };
+}
+
+export const firebaseConfig = await loadFirebaseConfig();
+
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+export const COLLECTIONS = {
+  users: "users",
+  products: "products",
+  orders: "orders",
+  healthcheck: "healthcheck",
+};
+
+export const ROLES = {
+  admin: "ADMIN",
+  user: "USER",
+};
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\main.js
+==================================================
+```
+import { ROLES } from "./services/constants.js";
+import { authService } from "./services/authService.js";
+import { productsService } from "./services/productsService.js";
+import { ordersService } from "./services/ordersService.js";
+import { uploadProductImage } from "./supabase.js";
+import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
+import { seedAll } from "./services/seedService.js";
+
+const $ = (id) => document.getElementById(id);
+
+const els = {
+  // header
+  userInfo: $("userInfo"),
+  btnLogout: $("btnLogout"),
+  // login (ĐÃ CẬP NHẬT CÁC ID MỚI ĐỂ CHUYỂN TAB)
+  cardLogin: $("cardLogin"),
+  authForm: $("authForm"),
+  email: $("email"),
+  password: $("password"),
+  btnSubmitAuth: $("btnSubmitAuth"),
+  btnSendVerify: $("btnSendVerify"),
+  verifyHint: $("verifyHint"),
+  tabModeLogin: $("tabModeLogin"),
+  tabModeRegister: $("tabModeRegister"),
+  // role
+  cardRole: $("cardRole"),
+  kvUid: $("kvUid"),
+  kvEmail: $("kvEmail"),
+  kvRole: $("kvRole"),
+  // health
+  cardHealth: $("cardHealth"),
+  btnRunHealth: $("btnRunHealth"),
+  btnSeedProducts: $("btnSeedProducts"),
+  btnClearLog: $("btnClearLog"),
+  healthLog: $("healthLog"),
+  // admin
+  cardAdmin: $("cardAdmin"),
+  cardNotAdmin: $("cardNotAdmin"),
+  // tabs
+  tabButtons: Array.from(document.querySelectorAll(".tab")),
+  tabProducts: $("tab-products"),
+  tabOrders: $("tab-orders"),
+  // products
+  btnReloadProducts: $("btnReloadProducts"),
+  productForm: $("productForm"),
+  p_id: $("p_id"),
+  p_name: $("p_name"),
+  p_price: $("p_price"),
+  p_category: $("p_category"),
+  p_description: $("p_description"),
+  p_available: $("p_available"),
+  p_imageUrl: $("p_imageUrl"),
+  p_imageFile: $("p_imageFile"),
+  btnUploadImage: $("btnUploadImage"),
+  uploadStatus: $("uploadStatus"),
+  btnResetProduct: $("btnResetProduct"),
+  productsTable: $("productsTable"),
+  // orders
+  btnReloadOrders: $("btnReloadOrders"),
+  ordersTable: $("ordersTable"),
+};
+
+// (ĐÃ XÓA: ADMIN_INVITE_CODE và các hàm isGatePassed, setGatePassed)
+
+function setHidden(el, hidden) {
+  if (!el) return;
+  el.classList.toggle("hidden", hidden);
+}
+
+function logLine(s) {
+  els.healthLog.textContent += `${s}\n`;
+  els.healthLog.scrollTop = els.healthLog.scrollHeight;
+}
+
+function clearLog() {
+  els.healthLog.textContent = "";
+}
+
+function setRolePill(role) {
+  els.kvRole.textContent = role ?? "(missing)";
+  els.kvRole.style.borderColor = role === ROLES.admin ? "rgba(71,209,108,.6)" : "rgba(110,168,254,.55)";
+}
+
+async function refreshProductsTable() {
+  const tbody = els.productsTable.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  const items = await productsService.listProducts();
+  for (const p of items) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><code>${escapeHtml(p.id ?? "")}</code></td>
+      <td>${escapeHtml(p.name ?? "")}</td>
+      <td>${escapeHtml(String(p.price ?? ""))}</td>
+      <td>${escapeHtml(p.category ?? "")}</td>
+      <td>${escapeHtml(String(p.available ?? ""))}</td>
+      <td>
+        <div class="row">
+          <button class="btn btn--ghost" data-act="edit" data-id="${escapeAttr(p.id ?? "")}">Edit</button>
+          <button class="btn btn--ghost" data-act="del" data-id="${escapeAttr(p.id ?? "")}" style="border-color: rgba(255,107,107,.45)">Delete</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  tbody.onclick = async (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    const act = btn.getAttribute("data-act");
+    const id = btn.getAttribute("data-id");
+    if (!act || !id) return;
+
+    if (act === "edit") {
+      const current = items.find((x) => x.id === id);
+      if (!current) return;
+      els.p_id.value = current.id ?? "";
+      els.p_name.value = current.name ?? "";
+      els.p_price.value = String(current.price ?? "");
+      els.p_category.value = current.category ?? "";
+      els.p_description.value = current.description ?? "";
+      els.p_available.value = String(Boolean(current.available));
+      els.p_imageUrl.value = current.imageUrl ?? "";
+      // Preserve imagePath so updating other fields won't wipe it.
+      els.p_imageUrl.dataset.path = current.imagePath ?? "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    if (act === "del") {
+      if (!confirm(`Delete product ${id}?`)) return;
+      await productsService.deleteProduct(id);
+      await refreshProductsTable();
+    }
+  };
+}
+
+let unsubOrders = null; // Biến giữ kết nối Real-time để hủy khi cần
+
+function refreshOrdersTable() {
+  const tbody = els.ordersTable.querySelector("tbody");
+
+  // Nếu đang có kết nối cũ thì hủy đi trước khi tạo mới
+  if (unsubOrders) {
+    unsubOrders();
+  }
+
+  // Khởi tạo luồng lắng nghe Real-time
+  unsubOrders = ordersService.listenOrders(50, (items) => {
+    tbody.innerHTML = ""; // Xóa bảng cũ
+
+    for (const o of items) {
+      const created = o.createdAt ? new Date(o.createdAt).toISOString() : "";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><code>${escapeHtml(o.id ?? "")}</code></td>
+        <td><code>${escapeHtml(o.userId ?? "")}</code></td>
+        <td>${escapeHtml(String(o.totalPrice ?? ""))}</td>
+        <td>
+          <select data-act="status" data-id="${escapeAttr(o.id ?? "")}">
+            ${["PENDING","CONFIRMED","DELIVERING","DONE","CANCELLED"].map((s) => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </td>
+        <td>${escapeHtml(created)}</td>
+        <td>
+          <button class="btn btn--ghost" data-act="save" data-id="${escapeAttr(o.id ?? "")}">Save</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
+
+  // Sự kiện bấm nút Save trạng thái
+  tbody.onclick = async (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    const act = btn.getAttribute("data-act");
+    if (act !== "save") return;
+    const id = btn.getAttribute("data-id");
+    const sel = tbody.querySelector(`select[data-id="${cssEscape(id)}"]`);
+    const status = sel?.value;
+    if (!id || !status) return;
+    await ordersService.setOrderStatus(id, status);
+    alert("Updated order status");
+  };
+}
+
+function switchTab(tabName) {
+  for (const b of els.tabButtons) {
+    b.classList.toggle("tab--active", b.dataset.tab === tabName);
+  }
+  setHidden(els.tabProducts, tabName !== "products");
+  setHidden(els.tabOrders, tabName !== "orders");
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replaceAll("`", "&#096;");
+}
+function cssEscape(s) {
+  return CSS?.escape ? CSS.escape(String(s ?? "")) : String(s ?? "").replaceAll('"', "\\\"");
+}
+
+// ---------- UI handlers ----------
+els.btnLogout.onclick = async () => {
+  await authService.logout();
+};
+
+// --- LOGIC XỬ LÝ TAB & FORM MỚI ---
+let isLoginMode = true;
+
+if (els.tabModeLogin && els.tabModeRegister) {
+  els.tabModeLogin.onclick = () => {
+    isLoginMode = true;
+    els.tabModeLogin.classList.add("tab--active");
+    els.tabModeRegister.classList.remove("tab--active");
+    els.btnSubmitAuth.textContent = "Đăng nhập";
+  };
+
+  els.tabModeRegister.onclick = () => {
+    isLoginMode = false;
+    els.tabModeRegister.classList.add("tab--active");
+    els.tabModeLogin.classList.remove("tab--active");
+    els.btnSubmitAuth.textContent = "Đăng ký";
+  };
+}
+
+if (els.authForm) {
+  els.authForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      if (isLoginMode) {
+        await authService.login(els.email.value.trim(), els.password.value);
+      } else {
+        await authService.register(els.email.value.trim(), els.password.value);
+        alert(
+          "Đăng ký thành công! Tài khoản admin đã được tạo, nhưng bạn cần XÁC MINH EMAIL trước khi vào Admin Console. Hãy kiểm tra Inbox/Spam."
+        );
+      }
+    } catch (e) {
+      alert(e?.message ?? String(e));
+    }
+  };
+}
+
+els.btnSendVerify.onclick = async () => {
+  try {
+    els.btnSendVerify.disabled = true;
+    await authService.sendVerificationEmail();
+    alert("Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
+  } catch (e) {
+    alert(e?.message ?? String(e));
+  } finally {
+    // will be re-enabled based on state
+    els.btnSendVerify.disabled = false;
+  }
+};
+
+// Healthcheck/Seed are optional; not implemented in this minimal admin.
+els.btnRunHealth.onclick = async () => {
+  clearLog();
+  logLine("Healthcheck: not implemented in web-admin yet.");
+  logLine("Tip: Use Firebase Console or Android healthcheck logs.");
+};
+els.btnSeedProducts.onclick = async () => {
+  clearLog();
+  try {
+    const u = authService.getAuthUser();
+    if (!u) throw new Error("Chưa đăng nhập");
+    logLine("[Seed] Running...");
+    const res = await seedAll({ adminUid: u.uid });
+    logLine(`[Seed] OK. products=${res.productsCount}, orderId=${res.orderId}`);
+    await refreshProductsTable();
+    await refreshOrdersTable();
+  } catch (e) {
+    logLine(`[Seed] FAILED: ${e?.message ?? String(e)}`);
+    alert(e?.message ?? String(e));
+  }
+};
+els.btnClearLog.onclick = clearLog;
+
+els.tabButtons.forEach((b) => {
+  b.onclick = () => switchTab(b.dataset.tab);
+});
+
+els.btnReloadProducts.onclick = async () => {
+  try {
+    els.btnReloadProducts.disabled = true;
+    await refreshProductsTable();
+  } finally {
+    els.btnReloadProducts.disabled = false;
+  }
+};
+
+els.btnReloadOrders.onclick = async () => {
+  try {
+    els.btnReloadOrders.disabled = true;
+    await refreshOrdersTable();
+  } finally {
+    els.btnReloadOrders.disabled = false;
+  }
+};
+
+els.btnResetProduct.onclick = () => {
+  els.p_id.value = "";
+  els.p_name.value = "";
+  els.p_price.value = "";
+  els.p_category.value = "";
+  els.p_description.value = "";
+  els.p_available.value = "true";
+  els.p_imageUrl.value = "";
+  els.p_imageUrl.dataset.path = "";
+  if (els.p_imageFile) els.p_imageFile.value = "";
+  if (els.uploadStatus) els.uploadStatus.textContent = "";
+};
+
+els.btnUploadImage.onclick = async () => {
+  try {
+    els.btnUploadImage.disabled = true;
+    els.uploadStatus.textContent = "Đang upload...";
+
+    const file = els.p_imageFile?.files?.[0];
+    if (!file) throw new Error("Vui lòng chọn ảnh trước");
+
+    // Use existing product id if provided; otherwise generate a temp id for storing.
+    const productId = (els.p_id.value || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    if (!els.p_id.value.trim()) {
+      // keep the generated id so next Create/Update writes the same document
+      els.p_id.value = productId;
+    }
+
+    const { publicUrl, path } = await uploadProductImage({ file, productId });
+    els.p_imageUrl.value = publicUrl;
+    // keep for saving into Firestore
+    els.p_imageUrl.dataset.path = path;
+    els.uploadStatus.textContent = "✅ Upload OK";
+  } catch (e) {
+    els.uploadStatus.textContent = "❌ Upload lỗi";
+    alert(e?.message ?? String(e));
+  } finally {
+    els.btnUploadImage.disabled = false;
+  }
+};
+
+els.productForm.onsubmit = async (ev) => {
+  ev.preventDefault();
+  const payload = {
+    id: els.p_id.value.trim() || undefined,
+    name: els.p_name.value.trim(),
+    price: Number(els.p_price.value),
+    category: els.p_category.value.trim(),
+    description: els.p_description.value.trim(),
+    available: els.p_available.value === "true",
+    imageUrl: els.p_imageUrl.value.trim(),
+    imagePath: (els.p_imageUrl.dataset.path || "").trim() || undefined,
+  };
+  try {
+    await productsService.upsertProduct(payload);
+    els.btnResetProduct.onclick();
+    await refreshProductsTable();
+  } catch (e) {
+    alert(e?.message ?? String(e));
+  }
+};
+
+// ---------- Auth state -> role gating ----------
+authService.listen(async (user) => {
+  clearLog();
+  if (!user) {
+    els.userInfo.textContent = "Chưa đăng nhập";
+    els.btnLogout.disabled = true;
+    setHidden(els.cardLogin, false);
+    setHidden(els.cardRole, true);
+    setHidden(els.cardHealth, true);
+    setHidden(els.cardAdmin, true);
+    setHidden(els.cardNotAdmin, true);
+
+    els.btnSendVerify.disabled = true;
+    if (els.verifyHint) els.verifyHint.textContent = "";
+    return;
+  }
+
+  els.btnLogout.disabled = false;
+  els.userInfo.textContent = `${user.email ?? "(no email)"}`;
+
+  // DEV convenience: if this uid is allowlisted, promote role to ADMIN (merge).
+  // This keeps the project smooth to demo without implementing invites yet.
+  try {
+    await bootstrapAdminIfAllowed({ uid: user.uid });
+  } catch {
+    // ignore bootstrap errors
+  }
+
+  const role = await authService.getUserRole(user.uid);
+
+  // Email verification UI
+  if (user.emailVerified) {
+    els.btnSendVerify.disabled = true;
+    if (els.verifyHint) els.verifyHint.textContent = "Email đã xác minh.";
+  } else {
+    els.btnSendVerify.disabled = false;
+    if (els.verifyHint) {
+      els.verifyHint.textContent =
+        "Bạn chưa xác minh email. Hãy bấm 'Gửi email xác minh' rồi kiểm tra Inbox/Spam. Sau khi xác minh, hãy đăng xuất/đăng nhập lại.";
+    }
+  }
+
+  setHidden(els.cardLogin, true);
+  setHidden(els.cardRole, false);
+  setHidden(els.cardHealth, true);
+
+  els.kvUid.textContent = user.uid;
+  els.kvEmail.textContent = user.email ?? "";
+  setRolePill(role);
+
+  // Require ALL:
+  // - Email verified (Firebase Auth)
+  // - Firestore role ADMIN (real security)
+  // (ĐÃ XÓA ĐIỀU KIỆN LẮNG NGHE MÃ MỜI CŨ Ở ĐÂY)
+  if (user.emailVerified && role === ROLES.admin) {
+    setHidden(els.cardAdmin, false);
+    setHidden(els.cardNotAdmin, true);
+    setHidden(els.cardHealth, false);
+    switchTab("products");
+    await refreshProductsTable();
+    await refreshOrdersTable();
+  } else {
+    setHidden(els.cardAdmin, true);
+    setHidden(els.cardNotAdmin, false);
+    setHidden(els.cardHealth, true);
+
+    // Helpful hint: most blocks are from unverified email (ADMIN is auto-granted on web register)
+    if (els.verifyHint) {
+      if (!user.emailVerified) {
+        els.verifyHint.textContent =
+          "Bạn bị chặn vì CHƯA XÁC MINH EMAIL. Hãy kiểm tra Inbox/Spam, bấm link xác minh, rồi đăng xuất/đăng nhập lại.";
+      } else if (role !== ROLES.admin) {
+        els.verifyHint.textContent =
+          "Email đã xác minh, nhưng Firestore role chưa phải ADMIN. Hãy kiểm tra: users/{uid}.role = ADMIN";
+      } else {
+        // Edge-case: verified + role admin but still blocked due to stale client state
+        els.verifyHint.textContent = "Nếu bạn vừa xác minh email, hãy thử đăng xuất/đăng nhập lại hoặc tải lại trang.";
+      }
+    }
+  }
+});
+```
+
+
+==================================================
+### FILE: web-admin\src\seed-healthcheck.js
+==================================================
+```
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+import { auth, db, storage, COLLECTIONS } from "./firebase.js";
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export async function runHealthcheck(logger) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not logged in");
+
+  const log = (msg) => logger(`[${nowIso()}] ${msg}`);
+  log("== HEALTHCHECK START ==");
+
+  // ----- Firestore -----
+  log("[Firestore] create doc...");
+  const hcCol = collection(db, COLLECTIONS.healthcheck);
+  const docRef = await addDoc(hcCol, {
+    platform: "web-admin",
+    uid: user.uid,
+    status: "created",
+    createdAt: serverTimestamp(),
+  });
+  log(`[Firestore] created: ${docRef.id}`);
+
+  log("[Firestore] read back...");
+  const snap1 = await getDoc(doc(db, COLLECTIONS.healthcheck, docRef.id));
+  if (!snap1.exists()) throw new Error("Firestore read-back failed: doc missing");
+  log(`[Firestore] read OK (status=${snap1.data().status})`);
+
+  log("[Firestore] update...");
+  await updateDoc(doc(db, COLLECTIONS.healthcheck, docRef.id), {
+    status: "updated",
+    updatedAt: serverTimestamp(),
+  });
+  log("[Firestore] update OK");
+
+  log("[Firestore] query (platform=web-admin, limit 1)...");
+  const q = query(
+    collection(db, COLLECTIONS.healthcheck),
+    where("platform", "==", "web-admin"),
+    limit(1)
+  );
+  const qs = await getDocs(q);
+  log(`[Firestore] query OK (found=${qs.size})`);
+
+  log("[Firestore] delete...");
+  await deleteDoc(doc(db, COLLECTIONS.healthcheck, docRef.id));
+  log("[Firestore] delete OK");
+
+  // ----- Storage -----
+  log("[Storage] upload... (healthcheck/{uid}/web_admin_test.txt)");
+  const content = `Mixue healthcheck OK\nuid=${user.uid}\ntime=${nowIso()}\n`;
+  const bytes = new TextEncoder().encode(content);
+  const fileRef = ref(storage, `healthcheck/${user.uid}/web_admin_test.txt`);
+  await uploadBytes(fileRef, bytes, { contentType: "text/plain" });
+  log("[Storage] upload OK");
+
+  log("[Storage] getDownloadURL...");
+  const url = await getDownloadURL(fileRef);
+  log(`[Storage] url OK: ${url.substring(0, 60)}...`);
+
+  log("[Storage] fetch content (optional verify)...");
+  const fetched = await fetch(url);
+  if (!fetched.ok) throw new Error(`Storage fetch failed: HTTP ${fetched.status}`);
+  const text = await fetched.text();
+  if (!text.includes("Mixue healthcheck OK")) {
+    throw new Error("Storage fetch verify failed: unexpected content");
+  }
+  log("[Storage] fetch verify OK");
+
+  log("[Storage] delete object...");
+  await deleteObject(fileRef);
+  log("[Storage] delete OK");
+
+  log("== HEALTHCHECK PASS ==");
+}
+
+export async function seedProducts(logger) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not logged in");
+
+  const log = (msg) => logger(`[${nowIso()}] ${msg}`);
+
+  const products = [
+    {
+      id: "p01",
+      name: "Kem Vani",
+      description: "Kem vani mát lạnh",
+      price: 25000,
+      category: "Kem",
+      imageUrl: "https://placehold.co/600x400/png",
+      available: true,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid,
+    },
+    {
+      id: "p02",
+      name: "Trà sữa trân châu",
+      description: "Trà sữa + trân châu",
+      price: 30000,
+      category: "Trà Sữa",
+      imageUrl: "https://placehold.co/600x400/png",
+      available: true,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid,
+    },
+    {
+      id: "p03",
+      name: "Nước chanh",
+      description: "Chanh tươi",
+      price: 15000,
+      category: "Nước",
+      imageUrl: "https://placehold.co/600x400/png",
+      available: true,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid,
+    },
+  ];
+
+  log("[Seed] upsert 3 products into Firestore collection 'products'...");
+  for (const p of products) {
+    await setDoc(doc(db, COLLECTIONS.products, p.id), p, { merge: true });
+  }
+  log("[Seed] DONE");
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\supabase.js
+==================================================
+```
+// Minimal Supabase Storage uploader (no npm, works with plain browser + fetch)
+// NOTE: This uses anon key (client-side). Bucket should be public.
+
+export const SUPABASE = {
+  url: "https://vqupigbrkuucghnauwrb.supabase.co",
+  anonKey: "sb_publishable_hJjVJNHKhXvwIT17Goi0Cw_4w3AQE9y",
+  bucket: "StorageImage_MixueAndroid",
+};
+
+function cleanBaseUrl(url) {
+  return String(url || "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/rest\/v1\/?$/, "");
+}
+
+export async function uploadProductImage({
+  file,
+  productId,
+  folder = "products",
+}) {
+  if (!file) throw new Error("No file selected");
+  if (!productId) throw new Error("productId is required");
+
+  const baseUrl = cleanBaseUrl(SUPABASE.url);
+  const path = `${folder}/${productId}/main_${Date.now()}_${file.name}`;
+
+  const endpoint = `${baseUrl}/storage/v1/object/${encodeURIComponent(SUPABASE.bucket)}/${path}`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE.anonKey}`,
+      apikey: SUPABASE.anonKey,
+      "x-upsert": "true",
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Supabase upload failed (HTTP ${res.status}): ${text}`);
+  }
+
+  const publicUrl = `${baseUrl}/storage/v1/object/public/${SUPABASE.bucket}/${path}`;
+  return { publicUrl, path };
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\adminBootstrap.js
+==================================================
+```
+import {
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+import { db, COLLECTIONS, ROLES } from "../firebase.js";
+
+/**
+ * DEV-ONLY: Bootstrap admin role by UID.
+ *
+ * Why:
+ * - Firestore rules require users/{uid}.role == 'ADMIN' for product/order writes.
+ * - For a small school project, we keep this simple so the system can run end-to-end.
+ *
+ * How to use:
+ * 1) Login once to get your uid (UI shows it).
+ * 2) Put the uid into ADMIN_UID_ALLOWLIST below.
+ * 3) Reload + login again -> your users/{uid} doc will be upserted with role ADMIN.
+ */
+
+// TODO (later): replace this with invite codes / custom claims.
+export const ADMIN_UID_ALLOWLIST = [
+  "nJjzh0VY85aDZpw9Z1SIbLL0tKA2",
+];
+
+export async function bootstrapAdminIfAllowed(user) {
+  if (!user?.uid) return false;
+  if (!ADMIN_UID_ALLOWLIST.includes(user.uid)) return false;
+
+  await setDoc(
+    doc(db, COLLECTIONS.users, user.uid),
+    {
+      role: ROLES.admin,
+      adminBootstrappedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+  return true;
+}
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\authService.js
+==================================================
+```
+import {
+  onAuthStateChanged,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+import { auth, db, COLLECTIONS, ROLES } from "../firebase.js";
+
+export const authService = {
+  listen(callback) {
+    // Keep UI layer contract: callback(user|null)
+    return onAuthStateChanged(auth, (u) => {
+      callback(
+        u
+          ? {
+              uid: u.uid,
+              email: u.email ?? "",
+              emailVerified: Boolean(u.emailVerified),
+            }
+          : null
+      );
+    });
+  },
+
+  getAuthUser() {
+    return auth.currentUser;
+  },
+
+  async login(email, _password) {
+    const credential = await signInWithEmailAndPassword(auth, email, _password);
+    const u = credential.user;
+    return {
+      uid: u.uid,
+      email: u.email ?? email,
+    };
+  },
+
+  // Register a user
+  // School-project mode: anyone registering via web-admin becomes an ADMIN.
+  // Still requires email verification AND Firestore role check for access.
+  async register(email, password) {
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    const u = credential.user;
+
+    await sendEmailVerification(u); // Gửi mail xác nhận ngay lập tức
+
+    // Create user profile doc (role ADMIN by default)
+    await setDoc(
+      doc(db, COLLECTIONS.users, u.uid),
+      {
+        email: u.email,
+        role: ROLES.admin,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return { uid: u.uid, email: u.email ?? email };
+  },
+
+  async logout() {
+    await signOut(auth);
+  },
+
+  async sendVerificationEmail() {
+    const u = auth.currentUser;
+    if (!u) throw new Error("Chưa đăng nhập");
+    await sendEmailVerification(u);
+  },
+
+  async getUserRole(uid) {
+    if (!uid) return ROLES.user;
+    const snap = await getDoc(doc(db, COLLECTIONS.users, uid));
+    const role = snap.exists() ? snap.data()?.role : null;
+    return role === ROLES.admin ? ROLES.admin : ROLES.user;
+  },
+};
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\constants.js
+==================================================
+```
+export const ROLES = {
+  admin: "ADMIN",
+  user: "USER",
+};
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\ordersService.js
+==================================================
+```
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  updateDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+import { db, COLLECTIONS } from "../firebase.js";
+
+export const ordersService = {
+  async listOrders(max = 50) {
+    const q = query(
+      collection(db, COLLECTIONS.orders),
+      orderBy("createdAt", "desc"),
+      limit(max)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  },
+
+  async setOrderStatus(orderId, status) {
+    if (!orderId) throw new Error("OrderId is required");
+    await updateDoc(doc(db, COLLECTIONS.orders, orderId), { status });
+  },
+};
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\productsService.js
+==================================================
+```
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+import { db, COLLECTIONS } from "../firebase.js";
+
+export const productsService = {
+  async listProducts() {
+    const q = query(collection(db, COLLECTIONS.products), orderBy("name"));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  },
+
+  async upsertProduct(product) {
+    const id = (product.id || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    const payload = {
+      ...product,
+      id,
+      price: Number(product.price ?? 0),
+      available: Boolean(product.available),
+    };
+
+    // Create if missing, update if exists (setDoc merge)
+    await setDoc(
+      doc(db, COLLECTIONS.products, id),
+      {
+        ...payload,
+        updatedAt: serverTimestamp(),
+        // createdAt only set if absent
+        createdAt: payload.createdAt ?? serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return id;
+  },
+
+  async deleteProduct(id) {
+    await deleteDoc(doc(db, COLLECTIONS.products, id));
+  },
+};
+
+
+```
+
+
+==================================================
+### FILE: web-admin\src\services\seedService.js
+==================================================
+```
+import {
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+import { db, COLLECTIONS } from "../firebase.js";
+
+function vnd(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x : 0;
+}
+
+/**
+ * Create demo data for the school project.
+ * Safe to run multiple times (fixed IDs + merge).
+ */
+export async function seedAll({ adminUid }) {
+  if (!adminUid) throw new Error("adminUid is required");
+
+  // ----- Products -----
+  const products = [
+    {
+      id: "p_kem_vani",
+      name: "Kem Vani",
+      description: "Kem vani mát lạnh",
+      category: "Kem",
+      price: vnd(25000),
+      available: true,
+      imageUrl: "https://placehold.co/600x400/png",
+      imagePath: "",
+    },
+    {
+      id: "p_tra_sua_tc",
+      name: "Trà sữa trân châu",
+      description: "Trà sữa + trân châu",
+      category: "Trà sữa",
+      price: vnd(30000),
+      available: true,
+      imageUrl: "https://placehold.co/600x400/png",
+      imagePath: "",
+    },
+    {
+      id: "p_kem_oc_que",
+      name: "Kem ốc quế",
+      description: "Kem ốc quế Mixue",
+      category: "Kem",
+      price: vnd(10000),
+      available: true,
+      imageUrl:
+        "https://vqupigbrkuucghnauwrb.supabase.co/storage/v1/object/public/StorageImage_MixueAndroid/products/ifoToN9pN1YZ28khZbew/main.jpg",
+      imagePath: "products/ifoToN9pN1YZ28khZbew/main.jpg",
+    },
+  ];
+
+  for (const p of products) {
+    await setDoc(
+      doc(db, COLLECTIONS.products, p.id),
+      {
+        ...p,
+        createdBy: adminUid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  // ----- Orders (demo) -----
+  // Firestore rules require: create order => signedIn && request.resource.data.userId == request.auth.uid
+  // This means: whoever runs seedAll must be logged in as adminUid, so we can only create an order
+  // with userId = adminUid here (simple demo order).
+
+  const orderId = `demo_order_${Date.now()}`;
+  await setDoc(
+    doc(db, COLLECTIONS.orders, orderId),
+    {
+      userId: adminUid,
+      status: "PENDING",
+      totalPrice: products[0].price + products[2].price,
+      items: [
+        {
+          productId: products[0].id,
+          name: products[0].name,
+          price: products[0].price,
+          quantity: 1,
+          imageUrl: products[0].imageUrl,
+        },
+        {
+          productId: products[2].id,
+          name: products[2].name,
+          price: products[2].price,
+          quantity: 1,
+          imageUrl: products[2].imageUrl,
+        },
+      ],
+      createdAt: serverTimestamp(),
+      createdBy: adminUid,
+    },
+    { merge: true }
+  );
+
+  return { productsCount: products.length, orderId };
+}
+
+
+```

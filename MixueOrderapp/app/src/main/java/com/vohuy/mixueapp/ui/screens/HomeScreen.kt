@@ -20,8 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -86,6 +88,8 @@ fun HomeScreen(
         authVm.fetchCurrentUser()
     }
 
+    var isMenuOpen by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             // Hero header with search + filters
@@ -117,19 +121,54 @@ fun HomeScreen(
                             )
                         }
 
-                        IconButton(onClick = { navController.navigate(Routes.ORDER_HISTORY) }) {
-                            Icon(Icons.Default.List, contentDescription = "Lịch sử", tint = Color.White)
-                        }
-                        IconButton(onClick = { navController.navigate(Routes.CART) }) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Giỏ Hàng", tint = Color.White)
-                        }
-                        IconButton(onClick = {
-                            authVm.logoutUser()
-                            navController.navigate(Routes.LOGIN) {
-                                popUpTo(Routes.HOME) { inclusive = true }
+                        // Top-right gear menu (Account/Settings/Logout)
+                        Box {
+                            IconButton(onClick = { isMenuOpen = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Cài đặt", tint = Color.White)
                             }
-                        }) {
-                            Icon(Icons.Default.ExitToApp, contentDescription = "Đăng xuất", tint = Color.White)
+                            DropdownMenu(
+                                expanded = isMenuOpen,
+                                onDismissRequest = { isMenuOpen = false },
+                            ) {
+                                // NOTE: These routes are placeholders to keep UX.
+                                // If you want real screens, we'll add new composables + routes.
+                                DropdownMenuItem(
+                                    text = { Text("Quản lý tài khoản") },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        // TODO: navigate to account screen when added
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.MoreVert, contentDescription = null)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Cài đặt") },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        // TODO: navigate to settings screen when added
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Settings, contentDescription = null)
+                                    }
+                                )
+                                Divider()
+                                DropdownMenuItem(
+                                    text = { Text("Thoát") },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        // UX request: do not sign out automatically.
+                                        // Keep old behavior for later/reference.
+                                        // authVm.logoutUser()
+                                        navController.navigate(Routes.LOGIN) {
+                                            popUpTo(Routes.HOME) { inclusive = false }
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.ExitToApp, contentDescription = null)
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -198,6 +237,24 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+        }
+        ,
+        // Move actions like Cart/History to bottom, horizontal.
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Routes.CART) },
+                    icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Giỏ hàng") },
+                    label = { Text("Giỏ hàng") },
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Routes.ORDER_HISTORY) },
+                    icon = { Icon(Icons.Default.List, contentDescription = "Lịch sử") },
+                    label = { Text("Lịch sử") },
+                )
             }
         }
     ) { paddingValues ->

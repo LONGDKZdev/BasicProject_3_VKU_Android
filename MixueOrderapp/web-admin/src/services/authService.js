@@ -24,6 +24,7 @@ export const authService = {
           ? {
               uid: u.uid,
               email: u.email ?? "",
+              // Keep this field for UI compatibility, but verification is no longer mandatory.
               emailVerified: Boolean(u.emailVerified),
             }
           : null
@@ -46,12 +47,15 @@ export const authService = {
 
   // Register a user
   // School-project mode: anyone registering via web-admin becomes an ADMIN.
-  // Still requires email verification AND Firestore role check for access.
+  // Previously required email verification AND Firestore role check for access.
+  // Requirement change: do NOT force email verification.
   async register(email, password) {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     const u = credential.user;
 
-    await sendEmailVerification(u); // Gửi mail xác nhận ngay lập tức
+    // ✅ Requirement change: do not force email verification.
+    // Keep old behavior for later/reference.
+    // await sendEmailVerification(u); // Gửi mail xác nhận ngay lập tức
 
     // Create user profile doc (role ADMIN by default)
     await setDoc(
@@ -74,7 +78,10 @@ export const authService = {
   async sendVerificationEmail() {
     const u = auth.currentUser;
     if (!u) throw new Error("Chưa đăng nhập");
-    await sendEmailVerification(u);
+    // ✅ Requirement change: do not force email verification.
+    // Keep old behavior for later/reference.
+    // await sendEmailVerification(u);
+    throw new Error("Đã tắt tính năng xác thực email (email verification). ");
   },
 
   async getUserRole(uid) {

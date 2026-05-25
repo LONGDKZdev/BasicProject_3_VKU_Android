@@ -24,12 +24,16 @@
         <h2>Xác thực Admin</h2>
         <p class="muted">
           Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được gán quyền <b>ADMIN</b>
+          tự động.
+          <!-- Old behavior (kept for reference):
           tự động — nhưng bạn <b>bắt buộc phải XÁC MINH EMAIL</b> trước khi vào Admin Console.
+          -->
         </p>
 
         <div class="tabs" style="margin-bottom: 16px;">
-          <button class="tab tab--active" id="tabModeLogin">Đăng nhập</button>
-          <button class="tab" id="tabModeRegister">Đăng ký</button>
+          <!-- Explicit type="button" to avoid accidental form submit -->
+          <button type="button" class="tab tab--active" id="tabModeLogin">Đăng nhập</button>
+          <button type="button" class="tab" id="tabModeRegister">Đăng ký</button>
         </div>
 
         <form id="authForm" class="form">
@@ -43,7 +47,8 @@
           </label>
           <div class="row">
             <button class="btn" type="submit" id="btnSubmitAuth">Đăng nhập</button>
-            <button class="btn btn--ghost" type="button" id="btnSendVerify" disabled>Gửi email xác minh</button>
+            <!-- Requirement change: email verification disabled -->
+            <!-- <button class="btn btn--ghost" type="button" id="btnSendVerify" disabled>Gửi email xác minh</button> -->
           </div>
         </form>
 
@@ -53,8 +58,11 @@
       <section class="card hidden" id="cardRole">
         <h2>Quyền hiện tại</h2>
         <div class="kv">
+          <!-- UI requirement: hide UID -->
+          <!--
           <div class="kv__k">UID</div>
           <div class="kv__v" id="kvUid">-</div>
+          -->
           <div class="kv__k">Email</div>
           <div class="kv__v" id="kvEmail">-</div>
           <div class="kv__k">Role</div>
@@ -78,11 +86,15 @@
       <section class="card hidden" id="cardNotAdmin">
         <h2>Không có quyền truy cập</h2>
         <p class="muted">
+          Bạn chưa vào được Admin Console. Vui lòng kiểm tra quyền trong Firestore: trường
+          <code>users/&lt;uid&gt;.role</code> phải là <code>ADMIN</code>.
+          <!-- Old behavior (kept for reference):
           Bạn chưa vào được Admin Console. Trong hầu hết trường hợp, nguyên nhân là bạn <b>chưa xác minh email</b>.
           Hãy kiểm tra Inbox/Spam và bấm link xác minh, sau đó đăng xuất/đăng nhập lại.
           <br />
           Nếu bạn đã xác minh email mà vẫn bị chặn, hãy kiểm tra trong Firestore: <code>users/{uid}.role</code> phải là
           <code>ADMIN</code>.
+          -->
         </p>
       </section>
 

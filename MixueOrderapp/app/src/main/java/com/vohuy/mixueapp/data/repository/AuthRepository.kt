@@ -34,7 +34,9 @@ class AuthRepository : BaseRepository() {
                     createdAt = System.currentTimeMillis()
                 )
 
-                authResult.user?.sendEmailVerification()
+                // ✅ Requirement change: do not force email verification.
+                // Keep the old behavior for later/reference.
+                // authResult.user?.sendEmailVerification()
 
                 // Lưu thông tin user vào Firestore
                 firestore.collection(Constants.COLLECTION_USERS)
@@ -42,7 +44,8 @@ class AuthRepository : BaseRepository() {
                     .set(user)
                     .addOnSuccessListener {
                         result.value = Result.Success(user)
-                        auth.signOut()
+                        // Old behavior (required verification): sign out after register.
+                        // auth.signOut()
                     }
                     .addOnFailureListener { exception ->
                         result.value = Result.Error(exception as Exception)
@@ -69,6 +72,9 @@ class AuthRepository : BaseRepository() {
 
         auth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener { authResult ->
+                // ✅ Requirement change (per project request): DO NOT block login by email verification.
+                // Keep the old logic for later/reference, but disable it by commenting out.
+                /*
                 if (authResult.user?.isEmailVerified == true) {
                     val userId = authResult.user?.uid ?: ""
                     fetchUserData(userId) { user ->
@@ -81,6 +87,16 @@ class AuthRepository : BaseRepository() {
                 } else {
                     auth.signOut() // Chưa verify thì đá ra ngoài
                     result.value = Result.Error(Exception("Vui lòng kiểm tra hộp thư và xác minh Email trước khi đăng nhập!"))
+                }
+                */
+
+                val userId = authResult.user?.uid ?: ""
+                fetchUserData(userId) { user ->
+                    if (user != null) {
+                        result.value = Result.Success(user)
+                    } else {
+                        result.value = Result.Error(Exception("Không thể lấy thông tin người dùng"))
+                    }
                 }
             }
             .addOnFailureListener { exception ->

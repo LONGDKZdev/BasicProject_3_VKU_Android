@@ -216,51 +216,68 @@ els.btnLogout.onclick = async () => {
 let isLoginMode = true;
 
 if (els.tabModeLogin && els.tabModeRegister) {
-  els.tabModeLogin.onclick = () => {
+  els.tabModeLogin.onclick = (ev) => {
+    ev?.preventDefault?.();
     isLoginMode = true;
     els.tabModeLogin.classList.add("tab--active");
     els.tabModeRegister.classList.remove("tab--active");
     els.btnSubmitAuth.textContent = "Đăng nhập";
+    if (els.verifyHint) els.verifyHint.textContent = "";
   };
 
-  els.tabModeRegister.onclick = () => {
+  els.tabModeRegister.onclick = (ev) => {
+    ev?.preventDefault?.();
     isLoginMode = false;
     els.tabModeRegister.classList.add("tab--active");
     els.tabModeLogin.classList.remove("tab--active");
     els.btnSubmitAuth.textContent = "Đăng ký";
+    if (els.verifyHint) els.verifyHint.textContent = "";
   };
 }
 
 if (els.authForm) {
   els.authForm.onsubmit = async (ev) => {
     ev.preventDefault();
+    const email = (els.email.value || "").trim();
+    const password = els.password.value;
+    if (!email || !password) return;
     try {
+      // Prevent double-submit which can feel like the UI is frozen.
+      els.btnSubmitAuth.disabled = true;
       if (isLoginMode) {
-        await authService.login(els.email.value.trim(), els.password.value);
+        await authService.login(email, password);
       } else {
-        await authService.register(els.email.value.trim(), els.password.value);
-        alert(
-          "Đăng ký thành công! Tài khoản admin đã được tạo, nhưng bạn cần XÁC MINH EMAIL trước khi vào Admin Console. Hãy kiểm tra Inbox/Spam."
-        );
+        await authService.register(email, password);
+        // ✅ Requirement change: do not require email verification.
+        // Keep old message for later/reference.
+        // alert(
+        //   "Đăng ký thành công! Tài khoản admin đã được tạo, nhưng bạn cần XÁC MINH EMAIL trước khi vào Admin Console. Hãy kiểm tra Inbox/Spam."
+        // );
+        alert("Đăng ký thành công! Tài khoản admin đã được tạo.");
       }
     } catch (e) {
       alert(e?.message ?? String(e));
+    } finally {
+      els.btnSubmitAuth.disabled = false;
     }
   };
 }
 
-els.btnSendVerify.onclick = async () => {
-  try {
-    els.btnSendVerify.disabled = true;
-    await authService.sendVerificationEmail();
-    alert("Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
-  } catch (e) {
-    alert(e?.message ?? String(e));
-  } finally {
-    // will be re-enabled based on state
-    els.btnSendVerify.disabled = false;
-  }
-};
+// Email verification disabled: button may be removed from HTML.
+if (els.btnSendVerify) {
+  els.btnSendVerify.onclick = async () => {
+    try {
+      els.btnSendVerify.disabled = true;
+      await authService.sendVerificationEmail();
+      alert("Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
+    } catch (e) {
+      alert(e?.message ?? String(e));
+    } finally {
+      // will be re-enabled based on state
+      els.btnSendVerify.disabled = false;
+    }
+  };
+}
 
 // Healthcheck/Seed are optional; not implemented in this minimal admin.
 els.btnRunHealth.onclick = async () => {
@@ -381,7 +398,7 @@ authService.listen(async (user) => {
     setHidden(els.cardAdmin, true);
     setHidden(els.cardNotAdmin, true);
 
-    els.btnSendVerify.disabled = true;
+    if (els.btnSendVerify) els.btnSendVerify.disabled = true;
     if (els.verifyHint) els.verifyHint.textContent = "";
     return;
   }
@@ -399,6 +416,9 @@ authService.listen(async (user) => {
 
   const role = await authService.getUserRole(user.uid);
 
+  // ✅ Requirement change: email verification is not used.
+  // Keep the old UI logic commented for later/reference.
+  /*
   // Email verification UI
   if (user.emailVerified) {
     els.btnSendVerify.disabled = true;
@@ -410,20 +430,33 @@ authService.listen(async (user) => {
         "Bạn chưa xác minh email. Hãy bấm 'Gửi email xác minh' rồi kiểm tra Inbox/Spam. Sau khi xác minh, hãy đăng xuất/đăng nhập lại.";
     }
   }
+  */
+  // Hide/disable verify button to avoid confusion.
+  if (els.btnSendVerify) els.btnSendVerify.disabled = true;
+  if (els.verifyHint) els.verifyHint.textContent = "";
 
   setHidden(els.cardLogin, true);
   setHidden(els.cardRole, false);
   setHidden(els.cardHealth, true);
 
-  els.kvUid.textContent = user.uid;
+  // ✅ UI requirement: hide UID
+  // Keep old behavior for later/reference.
+  // els.kvUid.textContent = user.uid;
+  if (els.kvUid) {
+    els.kvUid.textContent = "";
+    // Try to hide the whole UID row if markup supports it.
+    const uidRow = els.kvUid.closest(".kv") || els.kvUid.closest(".row") || els.kvUid.parentElement;
+    if (uidRow) uidRow.classList.add("hidden");
+  }
   els.kvEmail.textContent = user.email ?? "";
   setRolePill(role);
 
   // Require ALL:
-  // - Email verified (Firebase Auth)
   // - Firestore role ADMIN (real security)
-  // (ĐÃ XÓA ĐIỀU KIỆN LẮNG NGHE MÃ MỜI CŨ Ở ĐÂY)
-  if (user.emailVerified && role === ROLES.admin) {
+  // ✅ Requirement change: do NOT require email verification.
+  // Keep old condition for later/reference.
+  // if (user.emailVerified && role === ROLES.admin) {
+  if (role === ROLES.admin) {
     setHidden(els.cardAdmin, false);
     setHidden(els.cardNotAdmin, true);
     setHidden(els.cardHealth, false);
@@ -437,6 +470,9 @@ authService.listen(async (user) => {
 
     // Helpful hint: most blocks are from unverified email (ADMIN is auto-granted on web register)
     if (els.verifyHint) {
+      // ✅ Requirement change: only role gating is relevant.
+      // Keep old verification-related hints for later/reference.
+      /*
       if (!user.emailVerified) {
         els.verifyHint.textContent =
           "Bạn bị chặn vì CHƯA XÁC MINH EMAIL. Hãy kiểm tra Inbox/Spam, bấm link xác minh, rồi đăng xuất/đăng nhập lại.";
@@ -446,6 +482,13 @@ authService.listen(async (user) => {
       } else {
         // Edge-case: verified + role admin but still blocked due to stale client state
         els.verifyHint.textContent = "Nếu bạn vừa xác minh email, hãy thử đăng xuất/đăng nhập lại hoặc tải lại trang.";
+      }
+      */
+      if (role !== ROLES.admin) {
+        els.verifyHint.textContent =
+          "Bạn không có quyền ADMIN. Hãy kiểm tra Firestore: users/{uid}.role = ADMIN";
+      } else {
+        els.verifyHint.textContent = "";
       }
     }
   }
