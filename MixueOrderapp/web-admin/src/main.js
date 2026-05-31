@@ -5,6 +5,9 @@ import { ordersService } from "./services/ordersService.js";
 import { uploadProductImage } from "./supabase.js";
 import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
 import { seedAll } from "./services/seedService.js";
+import { initOrdersTab } from "./orders-ui.js";
+import { register, logout as authLogout, shouldAutoLogin, getSavedLoginEmail } from "./auth.js";
+import { auth } from "./firebase.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,7 +15,7 @@ const els = {
   // header
   userInfo: $("userInfo"),
   btnLogout: $("btnLogout"),
-  // login (ĐÃ CẬP NHẬT CÁC ID MỚI ĐỂ CHUYỂN TAB)
+  // login
   cardLogin: $("cardLogin"),
   authForm: $("authForm"),
   email: $("email"),
@@ -27,17 +30,11 @@ const els = {
   kvUid: $("kvUid"),
   kvEmail: $("kvEmail"),
   kvRole: $("kvRole"),
-  // health
-  cardHealth: $("cardHealth"),
-  btnRunHealth: $("btnRunHealth"),
-  btnSeedProducts: $("btnSeedProducts"),
-  btnClearLog: $("btnClearLog"),
-  healthLog: $("healthLog"),
   // admin
   cardAdmin: $("cardAdmin"),
   cardNotAdmin: $("cardNotAdmin"),
   // tabs
-  tabButtons: Array.from(document.querySelectorAll(".tab")),
+  tabButtons: Array.from(document.querySelectorAll(".nav-item")),
   tabProducts: $("tab-products"),
   tabOrders: $("tab-orders"),
   // products
@@ -68,12 +65,16 @@ function setHidden(el, hidden) {
 }
 
 function logLine(s) {
-  els.healthLog.textContent += `${s}\n`;
-  els.healthLog.scrollTop = els.healthLog.scrollHeight;
+  if (els.healthLog) {
+    els.healthLog.textContent += `${s}\n`;
+    els.healthLog.scrollTop = els.healthLog.scrollHeight;
+  }
 }
 
 function clearLog() {
-  els.healthLog.textContent = "";
+  if (els.healthLog) {
+    els.healthLog.textContent = "";
+  }
 }
 
 function setRolePill(role) {
@@ -82,7 +83,9 @@ function setRolePill(role) {
 }
 
 async function refreshProductsTable() {
+  if (!els.productsTable) return;
   const tbody = els.productsTable.querySelector("tbody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   const items = await productsService.listProducts();
@@ -137,7 +140,9 @@ async function refreshProductsTable() {
 let unsubOrders = null; // Biến giữ kết nối Real-time để hủy khi cần
 
 function refreshOrdersTable() {
+  if (!els.ordersTable) return;
   const tbody = els.ordersTable.querySelector("tbody");
+  if (!tbody) return;
 
   // Nếu đang có kết nối cũ thì hủy đi trước khi tạo mới
   if (unsubOrders) {
@@ -186,7 +191,7 @@ function refreshOrdersTable() {
 
 function switchTab(tabName) {
   for (const b of els.tabButtons) {
-    b.classList.toggle("tab--active", b.dataset.tab === tabName);
+    b.classList.toggle("nav-item--active", b.getAttribute("data-tab") === tabName);
   }
   setHidden(els.tabProducts, tabName !== "products");
   setHidden(els.tabOrders, tabName !== "orders");
@@ -208,9 +213,11 @@ function cssEscape(s) {
 }
 
 // ---------- UI handlers ----------
-els.btnLogout.onclick = async () => {
-  await authService.logout();
-};
+if (els.btnLogout) {
+  els.btnLogout.onclick = async () => {
+    await authService.logout();
+  };
+}
 
 // --- LOGIC XỬ LÝ TAB & FORM MỚI ---
 let isLoginMode = true;
@@ -242,21 +249,19 @@ if (els.authForm) {
     const password = els.password.value;
     if (!email || !password) return;
     try {
-      // Prevent double-submit which can feel like the UI is frozen.
       els.btnSubmitAuth.disabled = true;
       if (isLoginMode) {
         await authService.login(email, password);
       } else {
-        await authService.register(email, password);
-        // ✅ Requirement change: do not require email verification.
-        // Keep old message for later/reference.
-        // alert(
-        //   "Đăng ký thành công! Tài khoản admin đã được tạo, nhưng bạn cần XÁC MINH EMAIL trước khi vào Admin Console. Hãy kiểm tra Inbox/Spam."
-        // );
-        alert("Đăng ký thành công! Tài khoản admin đã được tạo.");
+        // Use register from auth.js (which creates user + sets ADMIN role)
+        await register(email, password);
+        alert("✅ Đăng ký thành công! Tài khoản admin đã được tạo.");
+        // Reset form
+        els.email.value = "";
+        els.password.value = "";
       }
     } catch (e) {
-      alert(e?.message ?? String(e));
+      alert("❌ Lỗi: " + (e?.message ?? String(e)));
     } finally {
       els.btnSubmitAuth.disabled = false;
     }
@@ -279,119 +284,110 @@ if (els.btnSendVerify) {
   };
 }
 
-// Healthcheck/Seed are optional; not implemented in this minimal admin.
-els.btnRunHealth.onclick = async () => {
-  clearLog();
-  logLine("Healthcheck: not implemented in web-admin yet.");
-  logLine("Tip: Use Firebase Console or Android healthcheck logs.");
-};
-els.btnSeedProducts.onclick = async () => {
-  clearLog();
-  try {
-    const u = authService.getAuthUser();
-    if (!u) throw new Error("Chưa đăng nhập");
-    logLine("[Seed] Running...");
-    const res = await seedAll({ adminUid: u.uid });
-    logLine(`[Seed] OK. products=${res.productsCount}, orderId=${res.orderId}`);
-    await refreshProductsTable();
-    await refreshOrdersTable();
-  } catch (e) {
-    logLine(`[Seed] FAILED: ${e?.message ?? String(e)}`);
-    alert(e?.message ?? String(e));
-  }
-};
-els.btnClearLog.onclick = clearLog;
+// Health/Seed section removed - use initOrdersTab for orders
 
-els.tabButtons.forEach((b) => {
-  b.onclick = () => switchTab(b.dataset.tab);
-});
+if (els.tabButtons && els.tabButtons.length > 0) {
+  els.tabButtons.forEach((b) => {
+    b.onclick = () => switchTab(b.dataset.tab);
+  });
+}
 
-els.btnReloadProducts.onclick = async () => {
-  try {
-    els.btnReloadProducts.disabled = true;
-    await refreshProductsTable();
-  } finally {
-    els.btnReloadProducts.disabled = false;
-  }
-};
-
-els.btnReloadOrders.onclick = async () => {
-  try {
-    els.btnReloadOrders.disabled = true;
-    await refreshOrdersTable();
-  } finally {
-    els.btnReloadOrders.disabled = false;
-  }
-};
-
-els.btnResetProduct.onclick = () => {
-  els.p_id.value = "";
-  els.p_name.value = "";
-  els.p_price.value = "";
-  els.p_category.value = "";
-  els.p_description.value = "";
-  els.p_available.value = "true";
-  els.p_imageUrl.value = "";
-  els.p_imageUrl.dataset.path = "";
-  if (els.p_imageFile) els.p_imageFile.value = "";
-  if (els.uploadStatus) els.uploadStatus.textContent = "";
-};
-
-els.btnUploadImage.onclick = async () => {
-  try {
-    els.btnUploadImage.disabled = true;
-    els.uploadStatus.textContent = "Đang upload...";
-
-    const file = els.p_imageFile?.files?.[0];
-    if (!file) throw new Error("Vui lòng chọn ảnh trước");
-
-    // Use existing product id if provided; otherwise generate a temp id for storing.
-    const productId = (els.p_id.value || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
-    if (!els.p_id.value.trim()) {
-      // keep the generated id so next Create/Update writes the same document
-      els.p_id.value = productId;
+if (els.btnReloadProducts) {
+  els.btnReloadProducts.onclick = async () => {
+    try {
+      els.btnReloadProducts.disabled = true;
+      await refreshProductsTable();
+    } finally {
+      els.btnReloadProducts.disabled = false;
     }
-
-    const { publicUrl, path } = await uploadProductImage({ file, productId });
-    els.p_imageUrl.value = publicUrl;
-    // keep for saving into Firestore
-    els.p_imageUrl.dataset.path = path;
-    els.uploadStatus.textContent = "✅ Upload OK";
-  } catch (e) {
-    els.uploadStatus.textContent = "❌ Upload lỗi";
-    alert(e?.message ?? String(e));
-  } finally {
-    els.btnUploadImage.disabled = false;
-  }
-};
-
-els.productForm.onsubmit = async (ev) => {
-  ev.preventDefault();
-  const payload = {
-    id: els.p_id.value.trim() || undefined,
-    name: els.p_name.value.trim(),
-    price: Number(els.p_price.value),
-    category: els.p_category.value.trim(),
-    description: els.p_description.value.trim(),
-    available: els.p_available.value === "true",
-    imageUrl: els.p_imageUrl.value.trim(),
-    imagePath: (els.p_imageUrl.dataset.path || "").trim() || undefined,
   };
-  try {
-    await productsService.upsertProduct(payload);
-    els.btnResetProduct.onclick();
-    await refreshProductsTable();
-  } catch (e) {
-    alert(e?.message ?? String(e));
-  }
-};
+}
+
+if (els.btnReloadOrders) {
+  els.btnReloadOrders.onclick = async () => {
+    try {
+      els.btnReloadOrders.disabled = true;
+      initOrdersTab(); // 🔄 Use new orders UI
+    } finally {
+      els.btnReloadOrders.disabled = false;
+    }
+  };
+}
+
+if (els.btnResetProduct) {
+  els.btnResetProduct.onclick = () => {
+    els.p_id.value = "";
+    els.p_name.value = "";
+    els.p_price.value = "";
+    els.p_category.value = "";
+    els.p_description.value = "";
+    els.p_available.value = "true";
+    els.p_imageUrl.value = "";
+    els.p_imageUrl.dataset.path = "";
+    if (els.p_imageFile) els.p_imageFile.value = "";
+    if (els.uploadStatus) els.uploadStatus.textContent = "";
+  };
+}
+
+if (els.btnUploadImage) {
+  els.btnUploadImage.onclick = async () => {
+    try {
+      els.btnUploadImage.disabled = true;
+      els.uploadStatus.textContent = "Đang upload...";
+
+      const file = els.p_imageFile?.files?.[0];
+      if (!file) throw new Error("Vui lòng chọn ảnh trước");
+
+      // Use existing product id if provided; otherwise generate a temp id for storing.
+      const productId = (els.p_id.value || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
+      if (!els.p_id.value.trim()) {
+        // keep the generated id so next Create/Update writes the same document
+        els.p_id.value = productId;
+      }
+
+      const { publicUrl, path } = await uploadProductImage({ file, productId });
+      els.p_imageUrl.value = publicUrl;
+      // keep for saving into Firestore
+      els.p_imageUrl.dataset.path = path;
+      els.uploadStatus.textContent = "✅ Upload OK";
+    } catch (e) {
+      els.uploadStatus.textContent = "❌ Upload lỗi";
+      alert(e?.message ?? String(e));
+    } finally {
+      els.btnUploadImage.disabled = false;
+    }
+  };
+}
+
+if (els.productForm) {
+  els.productForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const payload = {
+      id: els.p_id.value.trim() || undefined,
+      name: els.p_name.value.trim(),
+      price: Number(els.p_price.value),
+      category: els.p_category.value.trim(),
+      description: els.p_description.value.trim(),
+      available: els.p_available.value === "true",
+      imageUrl: els.p_imageUrl.value.trim(),
+      imagePath: (els.p_imageUrl.dataset.path || "").trim() || undefined,
+    };
+    try {
+      await productsService.upsertProduct(payload);
+      els.btnResetProduct.onclick();
+      await refreshProductsTable();
+    } catch (e) {
+      alert(e?.message ?? String(e));
+    }
+  };
+}
 
 // ---------- Auth state -> role gating ----------
 authService.listen(async (user) => {
   clearLog();
   if (!user) {
-    els.userInfo.textContent = "Chưa đăng nhập";
-    els.btnLogout.disabled = true;
+    if (els.userInfo) els.userInfo.textContent = "Chưa đăng nhập";
+    if (els.btnLogout) els.btnLogout.disabled = true;
     setHidden(els.cardLogin, false);
     setHidden(els.cardRole, true);
     setHidden(els.cardHealth, true);
@@ -403,8 +399,8 @@ authService.listen(async (user) => {
     return;
   }
 
-  els.btnLogout.disabled = false;
-  els.userInfo.textContent = `${user.email ?? "(no email)"}`;
+  if (els.btnLogout) els.btnLogout.disabled = false;
+  if (els.userInfo) els.userInfo.textContent = `${user.email ?? "(no email)"}`;
 
   // DEV convenience: if this uid is allowlisted, promote role to ADMIN (merge).
   // This keeps the project smooth to demo without implementing invites yet.
@@ -448,7 +444,7 @@ authService.listen(async (user) => {
     const uidRow = els.kvUid.closest(".kv") || els.kvUid.closest(".row") || els.kvUid.parentElement;
     if (uidRow) uidRow.classList.add("hidden");
   }
-  els.kvEmail.textContent = user.email ?? "";
+  if (els.kvEmail) els.kvEmail.textContent = user.email ?? "";
   setRolePill(role);
 
   // Require ALL:
@@ -462,7 +458,7 @@ authService.listen(async (user) => {
     setHidden(els.cardHealth, false);
     switchTab("products");
     await refreshProductsTable();
-    await refreshOrdersTable();
+    initOrdersTab(); // 🔄 Use new orders UI
   } else {
     setHidden(els.cardAdmin, true);
     setHidden(els.cardNotAdmin, false);
@@ -489,6 +485,31 @@ authService.listen(async (user) => {
           "Bạn không có quyền ADMIN. Hãy kiểm tra Firestore: users/{uid}.role = ADMIN";
       } else {
         els.verifyHint.textContent = "";
+      }
+    }
+  }
+});
+
+// ==================== AUTO-LOGIN with localStorage ====================
+
+// Check if user should be auto-logged in
+window.addEventListener("DOMContentLoaded", () => {
+  const currentUser = auth.currentUser;
+
+  // If already logged in via Firebase, no need to auto-login
+  if (currentUser) {
+    return;
+  }
+
+  // Check localStorage for saved login state
+  if (shouldAutoLogin()) {
+    const savedEmail = getSavedLoginEmail();
+    if (savedEmail) {
+      console.log("ℹ️ Thông tin đăng nhập được lưu. Hãy nhập mật khẩu để tiếp tục.");
+      // Pre-fill email
+      if (els.email) {
+        els.email.value = savedEmail;
+        els.email.focus();
       }
     }
   }

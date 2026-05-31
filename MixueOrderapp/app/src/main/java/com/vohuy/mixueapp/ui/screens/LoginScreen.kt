@@ -1,15 +1,23 @@
 package com.vohuy.mixueapp.ui.screens
 
+import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -17,13 +25,28 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -42,110 +65,148 @@ fun LoginScreen(
     navController: NavController,
     viewModel: AuthViewModel? = null,
 ) {
-    val vm = viewModel ?: viewModel<AuthViewModel>()
+    // FIX 1: Khởi tạo ViewModel an toàn
+    val vm: AuthViewModel = viewModel ?: viewModel()
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    // Focus Requesters
     val nameFocusRequester = remember { FocusRequester() }
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
 
+    // States
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    // Observers
     val isLoading by vm.isLoading.observeAsState(false)
     val currentUser by vm.currentUser.observeAsState()
     val errorMessage by vm.errorMessage.observeAsState()
     val successMessage by vm.successMessage.observeAsState()
     val isLoginTab by vm.isLoginTab.observeAsState(true)
 
+    // Logic validation
     val showConfirm = !isLoginTab
     val passwordMismatch = remember(password, confirmPassword, showConfirm) {
         showConfirm && confirmPassword.isNotBlank() && password != confirmPassword
     }
-    val canSubmit = remember(isLoginTab, email, password, fullName, confirmPassword, isLoading, passwordMismatch) {
+
+    val canSubmit = remember(
+        isLoginTab,
+        email,
+        password,
+        fullName,
+        confirmPassword,
+        isLoading,
+        passwordMismatch
+    ) {
         if (isLoading) return@remember false
-        if (email.isBlank() || password.isBlank()) return@remember false
+        val isEmailValid =
+            email.isNotBlank() && Patterns.EMAIL_ADDRESS.matcher(email.trim())
+                .matches()
+        if (!isEmailValid || password.length < 6) return@remember false
         if (isLoginTab) return@remember true
-        fullName.isNotBlank() && confirmPassword.isNotBlank() && !passwordMismatch
+        fullName.trim().isNotBlank() && confirmPassword.isNotBlank() && !passwordMismatch
     }
 
+    // FIX 2: Xử lý điều hướng an toàn (tránh văng app do lặp điều hướng)
+    // Chỉ navigate một lần khi currentUser được set
+    val hasNavigated = remember { mutableStateOf(false) }
     LaunchedEffect(currentUser) {
-        if (currentUser != null) {
+        if (currentUser != null && !hasNavigated.value) {
+            hasNavigated.value = true
             navController.navigate(Routes.HOME) {
-                popUpTo(Routes.LOGIN) { inclusive = true }
+                popUpTo(0) { inclusive = true } // Thay Routes.LOGIN bằng số 0 để dọn sạch hoàn toàn cô lập màn hình cũ
+                launchSingleTop = true
             }
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    // FIX 3: Hiển thị lỗi qua Toast để tránh làm vỡ Layout/Crash UI thread
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            if (it.isNotBlank()) {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Logo hoặc Tiêu đề
             Text(
-                text = if (isLoginTab) "Đăng nhập" else "Đăng ký",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold
+                text = if (isLoginTab) "Chào mừng trở lại!" else "Tạo tài khoản mới",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            TabRow(selectedTabIndex = if (isLoginTab) 0 else 1) {
+            // Tab chọn chế độ
+            TabRow(
+                selectedTabIndex = if (isLoginTab) 0 else 1,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier
+                    .height(48.dp)
+                    .fillMaxWidth(),
+                indicator = {} // Tùy chỉnh indicator nếu cần
+            ) {
                 Tab(
                     selected = isLoginTab,
-                    onClick = {
-                        vm.setLoginTab(true)
-                        confirmPassword = ""
-                    },
-                    text = { Text("Đăng nhập", fontWeight = FontWeight.SemiBold) }
+                    onClick = { vm.setLoginTab(true) },
+                    text = { Text("Đăng nhập") }
                 )
                 Tab(
                     selected = !isLoginTab,
-                    onClick = {
-                        vm.setLoginTab(false)
-                    },
-                    text = { Text("Đăng ký", fontWeight = FontWeight.SemiBold) }
+                    onClick = { vm.setLoginTab(false) },
+                    text = { Text("Đăng ký") }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Field: Họ và tên (Chỉ hiện khi Đăng ký)
             AnimatedVisibility(
                 visible = !isLoginTab,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 3 })
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
             ) {
-                Column {
-                    OutlinedTextField(
-                        value = fullName,
-                        onValueChange = { fullName = it },
-                        label = { Text("Họ và tên") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(nameFocusRequester),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { emailFocusRequester.requestFocus() }
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = { fullName = it },
+                    label = { Text("Họ và tên") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(nameFocusRequester),
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(onNext = { emailFocusRequester.requestFocus() })
+                )
             }
 
+            if (!isLoginTab) Spacer(modifier = Modifier.height(12.dp))
+
+            // Field: Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -160,13 +221,12 @@ fun LoginScreen(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                keyboardActions = KeyboardActions(
-                    onNext = { passwordFocusRequester.requestFocus() }
-                )
+                keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() })
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Field: Mật khẩu
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -176,7 +236,7 @@ fun LoginScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (passwordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
+                            contentDescription = null
                         )
                     }
                 },
@@ -186,40 +246,35 @@ fun LoginScreen(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
-                isError = passwordMismatch,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = if (isLoginTab) ImeAction.Done else ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = {
-                        if (!isLoginTab) confirmPasswordFocusRequester.requestFocus() else focusManager.clearFocus()
-                    },
+                    onNext = { if (!isLoginTab) confirmPasswordFocusRequester.requestFocus() },
                     onDone = {
                         focusManager.clearFocus()
-                        if (isLoginTab && canSubmit) vm.loginUser(email.trim(), password)
+                        if (canSubmit && isLoginTab) vm.loginUser(email.trim(), password)
                     }
                 )
             )
 
-            AnimatedVisibility(
-                visible = !isLoginTab,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 3 })
-            ) {
+            // Field: Nhập lại mật khẩu
+            AnimatedVisibility(visible = !isLoginTab) {
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
-
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Nhập lại mật khẩu") },
+                        label = { Text("Xác nhận mật khẩu") },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
-                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            IconButton(onClick = {
+                                confirmPasswordVisible = !confirmPasswordVisible
+                            }) {
                                 Icon(
                                     imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (confirmPasswordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
+                                    contentDescription = null
                                 )
                             }
                         },
@@ -234,76 +289,62 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                if (canSubmit) vm.registerUser(email.trim(), password, fullName.trim())
-                            }
-                        )
+                        keyboardActions = KeyboardActions(onDone = {
+                            focusManager.clearFocus()
+                            if (canSubmit) vm.registerUser(email.trim(), password, fullName.trim())
+                        })
                     )
-
-                    AnimatedVisibility(
-                        visible = passwordMismatch,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
+                    if (passwordMismatch) {
                         Text(
-                            text = "Mật khẩu không khớp. Vui lòng kiểm tra lại.",
+                            "Mật khẩu không khớp",
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 6.dp, start = 4.dp)
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Nút bấm hành động
             Button(
                 onClick = {
+                    focusManager.clearFocus()
                     if (isLoginTab) vm.loginUser(email.trim(), password)
                     else vm.registerUser(email.trim(), password, fullName.trim())
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = canSubmit
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Text(
-                        text = if (isLoginTab) "Đăng Nhập" else "Đăng Ký",
-                        style = MaterialTheme.typography.titleMedium,
+                        if (isLoginTab) "ĐĂNG NHẬP" else "TẠO TÀI KHOẢN",
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (!errorMessage.isNullOrBlank()) {
-                Text(
-                    text = errorMessage.orEmpty(),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            if (!successMessage.isNullOrBlank()) {
-                Text(
-                    text = successMessage.orEmpty(),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall
-                )
+            // Thông báo thành công (nếu có)
+            successMessage?.let {
+                if (it.isNotBlank()) {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }
 }
-
-

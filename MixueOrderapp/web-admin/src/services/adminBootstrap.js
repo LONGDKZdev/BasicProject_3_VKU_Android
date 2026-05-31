@@ -22,6 +22,7 @@ import { db, COLLECTIONS, ROLES } from "../firebase.js";
 // TODO (later): replace this with invite codes / custom claims.
 export const ADMIN_UID_ALLOWLIST = [
   "nJjzh0VY85aDZpw9Z1SIbLL0tKA2",
+  "sp4aOrH3iMPbXYZyThbxxgvmQw82",
 ];
 
 export async function bootstrapAdminIfAllowed(user) {

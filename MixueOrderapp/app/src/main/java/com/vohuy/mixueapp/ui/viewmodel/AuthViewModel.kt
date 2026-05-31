@@ -1,5 +1,7 @@
 package com.vohuy.mixueapp.ui.viewmodel
 
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.vohuy.mixueapp.base.BaseViewModel
@@ -22,6 +24,10 @@ class AuthViewModel : BaseViewModel() {
     private val _isLoginTab = MutableLiveData(true)
     val isLoginTab: LiveData<Boolean> = _isLoginTab
 
+    // Track logout completion for navigation
+    private val _logoutComplete = MutableLiveData<Boolean>(false)
+    val logoutComplete: LiveData<Boolean> = _logoutComplete
+
     fun setLoginTab(isLogin: Boolean) {
         _isLoginTab.value = isLogin
         // Clear old messages when switching modes
@@ -34,44 +40,65 @@ class AuthViewModel : BaseViewModel() {
     fun repositoryIsUserLoggedIn(): Boolean = repository.isUserLoggedIn()
 
     /**
-     * Đăng ký người dùng mới
-     */
-    fun registerUser(email: String, password: String, fullName: String) {
-        setLoading(true)
-        repository.registerUser(email, password, fullName).observeForever { result ->
-            when (result) {
-                is Result.Success -> {
-                    // Repository signs out after creating the account to enforce email verification.
-                    // Do NOT set _currentUser here, otherwise UI might navigate to HOME incorrectly.
-                    _currentUser.value = null
-                    setSuccess("Đăng ký thành công! Vui lòng kiểm tra Email để xác minh trước khi đăng nhập.")
-                    _isLoginTab.value = true
-                }
-                is Result.Error -> {
-                    setError(result.exception.message ?: "Đăng ký thất bại")
-                }
-                is Result.Loading -> setLoading(true)
-            }
-        }
-    }
-
-    /**
      * Đăng nhập
      */
     fun loginUser(email: String, password: String) {
         setLoading(true)
-        repository.loginUser(email, password).observeForever { result ->
-            when (result) {
-                is Result.Success -> {
-                    _currentUser.value = result.data
-                    setSuccess("Đăng nhập thành công!")
+        val liveData = repository.loginUser(email, password)
+
+        // Tạo một observer có khả năng tự hủy sau khi nhận kết quả
+        val observer = object : androidx.lifecycle.Observer<Result<User>> {
+            override fun onChanged(value: Result<User>) {
+                when (value) {
+                    is Result.Success -> {
+                        _currentUser.value = value.data
+                        setSuccess("Đăng nhập thành công!")
+                        // HỦY LẮNG NGHE NGAY LẬP TỨC để chặn đứng vòng lặp nhấp nháy màn hình
+                        liveData.removeObserver(this)
+                        // Reset currentUser sau khi điều hướng để tránh vòng lặp
+                        // Delay 500ms để cho LoginScreen có thời gian navigate tới HOME
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            _currentUser.value = null
+                        }, 500)
+                    }
+                    is Result.Error -> {
+                        setError(value.exception.message ?: "Đăng nhập thất bại")
+                        // Thất bại cũng phải hủy lắng nghe để giải phóng bộ nhớ
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Loading -> setLoading(true)
                 }
-                is Result.Error -> {
-                    setError(result.exception.message ?: "Đăng nhập thất bại")
-                }
-                is Result.Loading -> setLoading(true)
             }
         }
+        liveData.observeForever(observer)
+    }
+
+    /**
+     * Đăng ký người dùng mới
+     */
+    fun registerUser(email: String, password: String, fullName: String) {
+        setLoading(true)
+        val liveData = repository.registerUser(email, password, fullName)
+
+        val observer = object : androidx.lifecycle.Observer<Result<User>> {
+            override fun onChanged(value: Result<User>) {
+                when (value) {
+                    is Result.Success -> {
+                        _currentUser.value = null
+                        setSuccess("Đăng ký thành công! Vui lòng đăng nhập.")
+                        _isLoginTab.value = true
+                        // Hủy lắng nghe sau khi hoàn tất đăng ký
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Error -> {
+                        setError(value.exception.message ?: "Đăng ký thất bại")
+                        liveData.removeObserver(this)
+                    }
+                    is Result.Loading -> setLoading(true)
+                }
+            }
+        }
+        liveData.observeForever(observer)
     }
 
     /**
@@ -79,18 +106,28 @@ class AuthViewModel : BaseViewModel() {
      */
     fun logoutUser() {
         setLoading(true)
-        repository.logoutUser().observeForever { result ->
-            when (result) {
-                is Result.Success -> {
-                    _currentUser.value = null
-                    setSuccess("Đã đăng xuất")
+        _logoutComplete.value = false
+        val liveData = repository.logoutUser()
+
+        val observer = object : androidx.lifecycle.Observer<Result<Unit>> {
+            override fun onChanged(value: Result<Unit>) {
+                when (value) {
+                    is Result.Success -> {
+                        _currentUser.value = null
+                        setSuccess("Đã đăng xuất")
+                        _logoutComplete.value = true
+                        liveData.removeObserver(this) // Hủy lắng nghe
+                    }
+                    is Result.Error -> {
+                        setError(value.exception.message ?: "Đăng xuất thất bại")
+                        _logoutComplete.value = true
+                        liveData.removeObserver(this) // Hủy lắng nghe
+                    }
+                    is Result.Loading -> setLoading(true)
                 }
-                is Result.Error -> {
-                    setError(result.exception.message ?: "Đăng xuất thất bại")
-                }
-                is Result.Loading -> setLoading(true)
             }
         }
+        liveData.observeForever(observer)
     }
 
     /**
@@ -100,6 +137,13 @@ class AuthViewModel : BaseViewModel() {
         repository.getCurrentUser().observeForever { user ->
             _currentUser.value = user
         }
+    }
+
+    /**
+     * Reset logout complete flag để tránh lặp navigation
+     */
+    fun resetLogoutComplete() {
+        _logoutComplete.value = false
     }
 }
 

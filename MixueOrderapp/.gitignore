@@ -54,3 +54,13 @@ node_modules/
 # Local helper scripts/tools (do not commit)
 git-filter-repo.py
 
+# Aggregated code files & list files
+gom_code_part_1.txt
+docs/Danh_sach_file_auto.txt
+docs/gom_code_New_17-5-2026.txt
+*gom_code*.txt
+*Danh_sach_file*.txt
+**/gom_code_*.txt
+**/Danh_sach_file_*.txt
+
+

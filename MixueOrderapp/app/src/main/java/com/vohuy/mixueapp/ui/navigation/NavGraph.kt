@@ -7,11 +7,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vohuy.mixueapp.ui.screens.AccountManagementScreen
 import com.vohuy.mixueapp.ui.screens.CartScreen
 import com.vohuy.mixueapp.ui.screens.HomeScreen
 import com.vohuy.mixueapp.ui.screens.LoginScreen
 import com.vohuy.mixueapp.ui.screens.OrderHistoryScreen
 import com.vohuy.mixueapp.ui.screens.ProductDetailScreen
+import com.vohuy.mixueapp.ui.screens.SettingsScreen
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
@@ -31,7 +33,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.HOME) { entry ->
             // Shared VMs scoped to HOME graph (so Cart and ProductDetail can share same cart)
             viewModel<CartViewModel>(entry)
-            HomeScreen(navController)
+            HomeScreen(navController, authViewModel = authVm)
         }
 
         composable(Routes.CART) {
@@ -42,6 +44,9 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             CartScreen(navController, cartVm)
         }
         composable(Routes.ORDER_HISTORY) { OrderHistoryScreen(navController) }
+        
+        composable(Routes.ACCOUNT_MANAGEMENT) { AccountManagementScreen(navController, authVm) }
+        composable(Routes.SETTINGS) { SettingsScreen(navController) }
 
 
         composable(Routes.PRODUCT_DETAIL) { backStackEntry ->

@@ -70,18 +70,6 @@
         </div>
       </section>
 
-      <section class="card hidden" id="cardHealth">
-        <h2>Healthcheck / Seed</h2>
-        <p class="muted">
-          Khu vực này để test nhanh (tuỳ chọn). Nếu cần seed/healthcheck thật, sẽ implement sau.
-        </p>
-        <div class="row">
-          <button class="btn" id="btnRunHealth">Chạy healthcheck</button>
-          <button class="btn btn--ghost" id="btnSeedProducts">Seed 3 products mẫu</button>
-          <button class="btn btn--ghost" id="btnClearLog">Clear log</button>
-        </div>
-        <pre id="healthLog" class="log"></pre>
-      </section>
 
       <section class="card hidden" id="cardNotAdmin">
         <h2>Không có quyền truy cập</h2>
@@ -189,11 +177,36 @@
               <button class="btn" id="btnReloadOrders">Reload</button>
             </div>
           </div>
+
+          <!-- 🟡 PENDING ORDERS (Chờ xác thực) -->
+          <div class="section-header" style="margin-top: 20px; padding-bottom: 10px; border-bottom: 2px solid #FFD700;">
+            <h3 style="color: #FF9800; margin: 0;">⏳ Chờ Xác Thực</h3>
+          </div>
+          <div class="tablewrap">
+            <table class="table" id="pendingOrdersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Khách hàng</th>
+                  <th>Total</th>
+                  <th>CreatedAt</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- 📋 ALL ORDERS -->
+          <div class="section-header" style="margin-top: 30px; padding-bottom: 10px; border-bottom: 2px solid #4ECDC4;">
+            <h3 style="color: #2D3436; margin: 0;">📋 Tất Cả Đơn Hàng</h3>
+          </div>
           <div class="tablewrap">
             <table class="table" id="ordersTable">
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Khách hàng</th>
                   <th>UserId</th>
                   <th>Total</th>
                   <th>Status</th>

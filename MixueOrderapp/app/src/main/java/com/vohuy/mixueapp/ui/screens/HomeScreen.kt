@@ -63,6 +63,9 @@ fun HomeScreen(
     // This helps distinguish between first-load (loading) and true empty state (no products in DB).
     val isLoadingFromVm by vm.isLoading.observeAsState(false)
 
+    // Observe logout completion to trigger navigation
+    val logoutComplete by authVm.logoutComplete.observeAsState(false)
+
     // UI-only local state (no ViewModel changes)
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Tất cả") }
@@ -86,6 +89,18 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         authVm.fetchCurrentUser()
+    }
+
+    // When logout completes, navigate back to LOGIN
+    LaunchedEffect(logoutComplete) {
+        if (logoutComplete) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+            // Reset để tránh lặp lại navigation
+            authVm.resetLogoutComplete()
+        }
     }
 
     var isMenuOpen by remember { mutableStateOf(false) }
@@ -136,7 +151,7 @@ fun HomeScreen(
                                     text = { Text("Quản lý tài khoản") },
                                     onClick = {
                                         isMenuOpen = false
-                                        // TODO: navigate to account screen when added
+                                        navController.navigate(Routes.ACCOUNT_MANAGEMENT)
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Default.MoreVert, contentDescription = null)
@@ -146,7 +161,7 @@ fun HomeScreen(
                                     text = { Text("Cài đặt") },
                                     onClick = {
                                         isMenuOpen = false
-                                        // TODO: navigate to settings screen when added
+                                        navController.navigate(Routes.SETTINGS)
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Default.Settings, contentDescription = null)
@@ -157,12 +172,8 @@ fun HomeScreen(
                                     text = { Text("Thoát") },
                                     onClick = {
                                         isMenuOpen = false
-                                        // UX request: do not sign out automatically.
-                                        // Keep old behavior for later/reference.
-                                        // authVm.logoutUser()
-                                        navController.navigate(Routes.LOGIN) {
-                                            popUpTo(Routes.HOME) { inclusive = false }
-                                        }
+                                        // Chỉ gọi logout, để LaunchedEffect xử lý navigation
+                                        authVm.logoutUser()
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Default.ExitToApp, contentDescription = null)

@@ -1,5 +1,6 @@
 package com.vohuy.mixueapp.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +46,9 @@ fun OrderHistoryScreen(
         }
     }
 
+    val confirmedOrders = orders.filter { it.status in listOf(Constants.ORDER_STATUS_CONFIRMED, Constants.ORDER_STATUS_DELIVERING, Constants.ORDER_STATUS_DONE) }
+    val pendingOrders = orders.filter { it.status == Constants.ORDER_STATUS_PENDING }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,25 +64,58 @@ fun OrderHistoryScreen(
             )
         }
     ) { paddingValues ->
-        if (orders.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Chưa có đơn hàng nào")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(orders) { order ->
-                    OrderCard(order)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (orders.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Chưa có đơn hàng nào")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 📦 CONFIRMED ORDERS (Đã xác thực)
+                    if (confirmedOrders.isNotEmpty()) {
+                        item {
+                            Text(
+                                "✅ Đã Xác Thực",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        items(confirmedOrders) { order ->
+                            OrderCard(order)
+                        }
+                    }
+
+                    // ⏳ PENDING ORDERS (Chờ xác thực) - ĐẶT Ở DƯỚI
+                    if (pendingOrders.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "⏳ Chờ Xác Thực",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        items(pendingOrders) { order ->
+                            PendingOrderCard(order)
+                        }
+                    }
                 }
             }
         }
@@ -167,6 +204,97 @@ fun OrderCard(order: Order) {
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+        }
+    }
+}
+
+/**
+ * 🆕 Pending Order Card - Hiển thị chi tiết cho đơn chờ xác thực
+ */
+@Composable
+fun PendingOrderCard(order: Order) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.error,
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "⏳ Chờ Xác Thực - Đơn #${order.id}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        order.orderDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Divider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            )
+
+            // Order Items Summary
+            Text(
+                "${order.items.size} sản phẩm",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Tổng Cộng:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    order.totalPrice.formatPrice(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Info Text
+            Text(
+                "📌 Đơn hàng của bạn đang chờ nhân viên xác nhận. Vui lòng chờ trong giây lát.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
