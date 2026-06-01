@@ -43,7 +43,7 @@ export function listenPendingOrders(callback) {
     // Filter pending orders on client-side
     const items = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
-      .filter(order => order.status === "pending");
+      .filter(order => order.status === "PENDING");
     callback(items);
   });
 }
@@ -63,7 +63,7 @@ export async function setOrderStatus(orderId, status) {
  */
 export async function confirmOrder(orderId) {
   await updateDoc(doc(db, COLLECTIONS.orders, orderId), {
-    status: "confirmed",
+    status: "CONFIRMED",
     confirmedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -74,7 +74,7 @@ export async function confirmOrder(orderId) {
  */
 export async function rejectOrder(orderId, reason = "") {
   await updateDoc(doc(db, COLLECTIONS.orders, orderId), {
-    status: "cancelled",
+    status: "CANCELLED",
     rejectionReason: reason,
     updatedAt: serverTimestamp(),
   });
@@ -85,7 +85,7 @@ export async function rejectOrder(orderId, reason = "") {
  */
 export async function markPrepared(orderId) {
   await updateDoc(doc(db, COLLECTIONS.orders, orderId), {
-    status: "preparing",
+    status: "DELIVERING",
     preparedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

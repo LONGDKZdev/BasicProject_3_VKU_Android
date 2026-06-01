@@ -48,6 +48,7 @@ export const COLLECTIONS = {
   users: "users",
   products: "products",
   orders: "orders",
+  transactions: "transactions", // 🆕 Payment/Transaction collection
   healthcheck: "healthcheck",
 };
 

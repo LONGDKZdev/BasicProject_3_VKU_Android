@@ -108,10 +108,11 @@ fun CartScreen(
                         Button(
                             onClick = {
                                 val uid = currentUser?.id
+                                val customerName = currentUser?.fullName ?: ""
                                 if (uid.isNullOrBlank()) {
                                     orderVm.setError("Bạn cần đăng nhập để thanh toán")
                                 } else {
-                                    orderVm.createOrder(uid, cartItems)
+                                    orderVm.createOrder(uid, cartItems, customerName)
                                 }
                             },
                             modifier = Modifier
@@ -206,7 +207,7 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
         ) {
             // Product Image
             AsyncImage(
-                model = item.productImage,
+                model = item.imageUrl,
                 contentDescription = item.productName,
                 modifier = Modifier
                     .size(76.dp)

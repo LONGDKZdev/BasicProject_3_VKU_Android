@@ -9,9 +9,10 @@ import java.util.*
 data class Order(
     val id: String = "",
     val userId: String = "",
+    val customerName: String = "", // 🆕 Tên khách hàng để hiển thị trên web admin
     val items: List<OrderItem> = emptyList(),
     val status: String = "PENDING",
-    val totalPrice: Double = 0.0, // SỬA Ở ĐÂY: Đưa vào Constructor để Firebase lưu lại
+    val totalPrice: Double = 0.0,
     val createdAt: Long = System.currentTimeMillis()
 ) {
     val orderDate: String

@@ -2,12 +2,14 @@ import { ROLES } from "./services/constants.js";
 import { authService } from "./services/authService.js";
 import { productsService } from "./services/productsService.js";
 import { ordersService } from "./services/ordersService.js";
+import * as paymentsService from "./services/paymentsService.js";
 import { uploadProductImage } from "./supabase.js";
 import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
 import { seedAll } from "./services/seedService.js";
 import { initOrdersTab } from "./orders-ui.js";
 import { register, logout as authLogout, shouldAutoLogin, getSavedLoginEmail } from "./auth.js";
 import { auth } from "./firebase.js";
+import { showSuccess, showError, showInfo } from "./toast.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,10 +35,11 @@ const els = {
   // admin
   cardAdmin: $("cardAdmin"),
   cardNotAdmin: $("cardNotAdmin"),
-  // tabs
-  tabButtons: Array.from(document.querySelectorAll(".nav-item")),
-  tabProducts: $("tab-products"),
-  tabOrders: $("tab-orders"),
+   // tabs
+   tabButtons: Array.from(document.querySelectorAll(".tab")),
+   tabProducts: $("tab-products"),
+   tabOrders: $("tab-orders"),
+   tabPayments: $("tab-payments"), // 🆕
   // products
   btnReloadProducts: $("btnReloadProducts"),
   productForm: $("productForm"),
@@ -55,6 +58,9 @@ const els = {
   // orders
   btnReloadOrders: $("btnReloadOrders"),
   ordersTable: $("ordersTable"),
+  // payments 🆕
+  btnReloadPayments: $("btnReloadPayments"),
+  paymentsTable: $("paymentsTable"),
 };
 
 // (ĐÃ XÓA: ADMIN_INVITE_CODE và các hàm isGatePassed, setGatePassed)
@@ -137,56 +143,68 @@ async function refreshProductsTable() {
   };
 }
 
-let unsubOrders = null; // Biến giữ kết nối Real-time để hủy khi cần
+// Orders table is now managed by initOrdersTab() in orders-ui.js with real-time listeners
 
-function refreshOrdersTable() {
-  if (!els.ordersTable) return;
-  const tbody = els.ordersTable.querySelector("tbody");
+let unsubPayments = null; // Real-time subscription for payments
+
+function refreshPaymentsTable() {
+  if (!els.paymentsTable) return;
+  const tbody = els.paymentsTable.querySelector("tbody");
   if (!tbody) return;
 
-  // Nếu đang có kết nối cũ thì hủy đi trước khi tạo mới
-  if (unsubOrders) {
-    unsubOrders();
+  // Cancel old subscription if exists
+  if (unsubPayments) {
+    unsubPayments();
   }
 
-  // Khởi tạo luồng lắng nghe Real-time
-  unsubOrders = ordersService.listenOrders(50, (items) => {
-    tbody.innerHTML = ""; // Xóa bảng cũ
+  // Listen to all payments in real-time
+  unsubPayments = paymentsService.listenTransactions((items) => {
+    tbody.innerHTML = "";
 
-    for (const o of items) {
-      const created = o.createdAt ? new Date(o.createdAt).toISOString() : "";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><code>${escapeHtml(o.id ?? "")}</code></td>
-        <td><code>${escapeHtml(o.userId ?? "")}</code></td>
-        <td>${escapeHtml(String(o.totalPrice ?? ""))}</td>
-        <td>
-          <select data-act="status" data-id="${escapeAttr(o.id ?? "")}">
-            ${["PENDING","CONFIRMED","DELIVERING","DONE","CANCELLED"].map((s) => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("")}
-          </select>
-        </td>
-        <td>${escapeHtml(created)}</td>
-        <td>
-          <button class="btn btn--ghost" data-act="save" data-id="${escapeAttr(o.id ?? "")}">Save</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="muted text-center">Không có giao dịch nào</td></tr>`;
+      return;
     }
-  });
 
-  // Sự kiện bấm nút Save trạng thái
-  tbody.onclick = async (ev) => {
-    const btn = ev.target.closest("button");
-    if (!btn) return;
-    const act = btn.getAttribute("data-act");
-    if (act !== "save") return;
-    const id = btn.getAttribute("data-id");
-    const sel = tbody.querySelector(`select[data-id="${cssEscape(id)}"]`);
-    const status = sel?.value;
-    if (!id || !status) return;
-    await ordersService.setOrderStatus(id, status);
-    alert("Updated order status");
+    items.forEach((payment) => {
+      const row = document.createElement("tr");
+      const createdAt = payment.createdAt
+        ? new Date(payment.createdAt.toDate?.() || payment.createdAt).toLocaleString("vi-VN")
+        : "-";
+
+      const statusBadge = getPaymentStatusBadge(payment.status || "SUCCESS");
+      const methodBadge = getPaymentMethodBadge(payment.paymentMethod || "CASH");
+
+      row.innerHTML = `
+        <td><code>${escapeHtml(payment.id?.substring(0, 8) || "")}</code></td>
+        <td><code>${escapeHtml(payment.userId?.substring(0, 8) || "")}</code></td>
+        <td><code>${escapeHtml(payment.orderId || "")}</code></td>
+        <td class="text-right font-bold">${formatPrice(payment.amount || 0)}</td>
+        <td>${methodBadge}</td>
+        <td>${statusBadge}</td>
+        <td>${createdAt}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+}
+
+function getPaymentStatusBadge(status) {
+  const badges = {
+    SUCCESS: '<span class="badge badge--success">✅ Thành Công</span>',
+    PENDING: '<span class="badge badge--warning">⏳ Chờ</span>',
+    FAILED: '<span class="badge badge--danger">❌ Thất Bại</span>'
   };
+  return badges[status] || `<span class="badge">${status}</span>`;
+}
+
+function getPaymentMethodBadge(method) {
+  const badges = {
+    CASH: '<span class="badge" style="background-color: rgba(156, 39, 176, 0.2); color: #9C27B0;">💵 Tiền Mặt</span>',
+    CARD: '<span class="badge" style="background-color: rgba(33, 150, 243, 0.2); color: #2196F3;">💳 Thẻ</span>',
+    WALLET: '<span class="badge" style="background-color: rgba(76, 175, 80, 0.2); color: #4CAF50;">💰 Ví</span>'
+  };
+  return badges[method] || `<span class="badge">${method}</span>`;
 }
 
 function switchTab(tabName) {
@@ -195,6 +213,7 @@ function switchTab(tabName) {
   }
   setHidden(els.tabProducts, tabName !== "products");
   setHidden(els.tabOrders, tabName !== "orders");
+  setHidden(els.tabPayments, tabName !== "payments");
 }
 
 function escapeHtml(s) {
@@ -249,19 +268,19 @@ if (els.authForm) {
     const password = els.password.value;
     if (!email || !password) return;
     try {
-      els.btnSubmitAuth.disabled = true;
-      if (isLoginMode) {
-        await authService.login(email, password);
-      } else {
-        // Use register from auth.js (which creates user + sets ADMIN role)
-        await register(email, password);
-        alert("✅ Đăng ký thành công! Tài khoản admin đã được tạo.");
-        // Reset form
-        els.email.value = "";
-        els.password.value = "";
-      }
-    } catch (e) {
-      alert("❌ Lỗi: " + (e?.message ?? String(e)));
+                       els.btnSubmitAuth.disabled = true;
+                       if (isLoginMode) {
+                         await authService.login(email, password);
+                       } else {
+                         // Use register from auth.js (which creates user + sets ADMIN role)
+                         await register(email, password);
+                         showSuccess("✅ Đăng ký thành công! Tài khoản admin đã được tạo.");
+                         // Reset form
+                         els.email.value = "";
+                         els.password.value = "";
+                       }
+                     } catch (e) {
+                       showError("❌ Lỗi: " + (e?.message ?? String(e)));
     } finally {
       els.btnSubmitAuth.disabled = false;
     }
@@ -274,9 +293,9 @@ if (els.btnSendVerify) {
     try {
       els.btnSendVerify.disabled = true;
       await authService.sendVerificationEmail();
-      alert("Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
+      showSuccess("📧 Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
     } catch (e) {
-      alert(e?.message ?? String(e));
+      showError("❌ Lỗi: " + (e?.message ?? String(e)));
     } finally {
       // will be re-enabled based on state
       els.btnSendVerify.disabled = false;
@@ -304,12 +323,26 @@ if (els.btnReloadProducts) {
 }
 
 if (els.btnReloadOrders) {
-  els.btnReloadOrders.onclick = async () => {
+   els.btnReloadOrders.onclick = async () => {
+     try {
+       els.btnReloadOrders.disabled = true;
+       console.log("🔄 Reloading orders...");
+       initOrdersTab();
+       showSuccess("✅ Đã tải lại danh sách đơn hàng");
+     } finally {
+       els.btnReloadOrders.disabled = false;
+     }
+   };
+}
+
+if (els.btnReloadPayments) {
+  els.btnReloadPayments.onclick = async () => {
     try {
-      els.btnReloadOrders.disabled = true;
-      initOrdersTab(); // 🔄 Use new orders UI
+      els.btnReloadPayments.disabled = true;
+      refreshPaymentsTable();
+      showSuccess("🔄 Đã tải lại danh sách giao dịch");
     } finally {
-      els.btnReloadOrders.disabled = false;
+      els.btnReloadPayments.disabled = false;
     }
   };
 }
@@ -331,28 +364,29 @@ if (els.btnResetProduct) {
 
 if (els.btnUploadImage) {
   els.btnUploadImage.onclick = async () => {
-    try {
-      els.btnUploadImage.disabled = true;
-      els.uploadStatus.textContent = "Đang upload...";
+     try {
+       els.btnUploadImage.disabled = true;
+       els.uploadStatus.textContent = "Đang upload...";
 
-      const file = els.p_imageFile?.files?.[0];
-      if (!file) throw new Error("Vui lòng chọn ảnh trước");
+       const file = els.p_imageFile?.files?.[0];
+       if (!file) throw new Error("Vui lòng chọn ảnh trước");
 
-      // Use existing product id if provided; otherwise generate a temp id for storing.
-      const productId = (els.p_id.value || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
-      if (!els.p_id.value.trim()) {
-        // keep the generated id so next Create/Update writes the same document
-        els.p_id.value = productId;
-      }
+       // Use existing product id if provided; otherwise generate a temp id for storing.
+       const productId = (els.p_id.value || "").trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
+       if (!els.p_id.value.trim()) {
+         // keep the generated id so next Create/Update writes the same document
+         els.p_id.value = productId;
+       }
 
-      const { publicUrl, path } = await uploadProductImage({ file, productId });
-      els.p_imageUrl.value = publicUrl;
-      // keep for saving into Firestore
-      els.p_imageUrl.dataset.path = path;
-      els.uploadStatus.textContent = "✅ Upload OK";
-    } catch (e) {
-      els.uploadStatus.textContent = "❌ Upload lỗi";
-      alert(e?.message ?? String(e));
+       const { publicUrl, path } = await uploadProductImage({ file, productId });
+       els.p_imageUrl.value = publicUrl;
+       // keep for saving into Firestore
+       els.p_imageUrl.dataset.path = path;
+       els.uploadStatus.textContent = "✅ Upload OK";
+       showSuccess("✅ Tải lên ảnh thành công");
+     } catch (e) {
+       els.uploadStatus.textContent = "❌ Upload lỗi";
+       showError("❌ Lỗi tải lên: " + (e?.message ?? String(e)));
     } finally {
       els.btnUploadImage.disabled = false;
     }
@@ -372,12 +406,13 @@ if (els.productForm) {
       imageUrl: els.p_imageUrl.value.trim(),
       imagePath: (els.p_imageUrl.dataset.path || "").trim() || undefined,
     };
-    try {
-      await productsService.upsertProduct(payload);
-      els.btnResetProduct.onclick();
-      await refreshProductsTable();
-    } catch (e) {
-      alert(e?.message ?? String(e));
+     try {
+       await productsService.upsertProduct(payload);
+       showSuccess("✅ Sản phẩm đã được lưu thành công");
+       els.btnResetProduct.onclick();
+       await refreshProductsTable();
+     } catch (e) {
+       showError("❌ Lỗi: " + (e?.message ?? String(e)));
     }
   };
 }
@@ -452,13 +487,14 @@ authService.listen(async (user) => {
   // ✅ Requirement change: do NOT require email verification.
   // Keep old condition for later/reference.
   // if (user.emailVerified && role === ROLES.admin) {
-  if (role === ROLES.admin) {
-    setHidden(els.cardAdmin, false);
-    setHidden(els.cardNotAdmin, true);
-    setHidden(els.cardHealth, false);
-    switchTab("products");
-    await refreshProductsTable();
-    initOrdersTab(); // 🔄 Use new orders UI
+   if (role === ROLES.admin) {
+     setHidden(els.cardAdmin, false);
+     setHidden(els.cardNotAdmin, true);
+     setHidden(els.cardHealth, false);
+     switchTab("products");
+     await refreshProductsTable();
+     initOrdersTab(); // 🔄 Use new orders UI
+     refreshPaymentsTable(); // 🆕 Load payments
   } else {
     setHidden(els.cardAdmin, true);
     setHidden(els.cardNotAdmin, false);

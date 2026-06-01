@@ -5,37 +5,31 @@ import {
   rejectOrder,
   markPrepared
 } from "./admin-orders.js";
+import { showSuccess, showError } from "./toast.js";
 
 /**
- * Initialize Orders Tab - hiển thị pending orders riêng
+ * Initialize Orders Tab - hiển thị tất cả đơn hàng
  */
 export function initOrdersTab() {
-  const pendingTable = document.getElementById("pendingOrdersTable");
-  const allOrdersTable = document.getElementById("ordersTable");
-  const btnReloadOrders = document.getElementById("btnReloadOrders");
+   const allOrdersTable = document.getElementById("ordersTable");
 
-  if (!pendingTable || !allOrdersTable) return;
+   if (!allOrdersTable) return;
 
-  // Load pending orders
-  listenPendingOrders((orders) => {
-    renderPendingOrdersTable(pendingTable, orders);
-  });
+   // Load all orders (single listener for all orders)
+   listenOrders(100, (orders) => {
+     renderAllOrdersTable(allOrdersTable, orders);
+   });
 
-  // Load all orders
-  listenOrders(100, (orders) => {
-    renderAllOrdersTable(allOrdersTable, orders);
-  });
-
-  // Manual reload
-  btnReloadOrders?.addEventListener("click", () => {
-    console.log("🔄 Reloading orders...");
-    listenPendingOrders((orders) => {
-      renderPendingOrdersTable(pendingTable, orders);
-    });
-    listenOrders(100, (orders) => {
-      renderAllOrdersTable(allOrdersTable, orders);
-    });
-  });
+   // Manual reload handler
+   const btnReloadOrders = document.getElementById("btnReloadOrders");
+   if (btnReloadOrders) {
+     btnReloadOrders.onclick = () => {
+       console.log("🔄 Reloading all orders...");
+       listenOrders(100, (orders) => {
+         renderAllOrdersTable(allOrdersTable, orders);
+       });
+     };
+   }
 }
 
 /**
@@ -144,10 +138,16 @@ function renderAllOrdersTable(table, orders) {
  */
 function getStatusBadge(status) {
   const badges = {
+    PENDING: '<span class="badge badge--warning">⏳ Chờ</span>',
+    CONFIRMED: '<span class="badge badge--info">✅ Xác Thực</span>',
+    DELIVERING: '<span class="badge badge--primary">🚚 Đang Giao</span>',
+    DONE: '<span class="badge badge--success">✔ Hoàn Thành</span>',
+    CANCELLED: '<span class="badge badge--danger">✗ Hủy</span>',
+    // Backward compatibility with old lowercase values
     pending: '<span class="badge badge--warning">⏳ Chờ</span>',
     confirmed: '<span class="badge badge--info">✅ Xác Thực</span>',
     preparing: '<span class="badge badge--primary">🔨 Chuẩn Bị</span>',
-    delivering: '<span class="badge badge--secondary">🚚 Đang Giao</span>',
+    delivering: '<span class="badge badge--primary">🚚 Đang Giao</span>',
     done: '<span class="badge badge--success">✔ Hoàn Thành</span>',
     cancelled: '<span class="badge badge--danger">✗ Hủy</span>'
   };
@@ -161,10 +161,10 @@ window.confirmOrderFn = async function (orderId) {
   if (!confirm("Xác nhận đơn hàng này?")) return;
   try {
     await confirmOrder(orderId);
-    alert("✅ Đơn hàng đã được xác nhận");
+    showSuccess("✅ Đơn hàng đã được xác nhận");
     initOrdersTab(); // Refresh UI
   } catch (error) {
-    alert("❌ Lỗi: " + error.message);
+    showError("❌ Lỗi: " + error.message);
   }
 };
 
@@ -177,10 +177,10 @@ window.rejectOrderFn = async function (orderId) {
 
   try {
     await rejectOrder(orderId, reason);
-    alert("❌ Đơn hàng đã bị từ chối");
+    showSuccess("❌ Đơn hàng đã bị từ chối");
     initOrdersTab(); // Refresh UI
   } catch (error) {
-    alert("❌ Lỗi: " + error.message);
+    showError("❌ Lỗi: " + error.message);
   }
 };
 
@@ -198,7 +198,7 @@ window.printInvoiceFn = async function (orderId) {
       });
     }
   } catch (error) {
-    alert("❌ Lỗi in: " + error.message);
+    showError("❌ Lỗi in: " + error.message);
   }
 };
 

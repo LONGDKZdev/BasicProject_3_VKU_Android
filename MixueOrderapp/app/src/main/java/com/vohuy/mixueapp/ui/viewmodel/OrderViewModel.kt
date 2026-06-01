@@ -5,7 +5,9 @@ import androidx.lifecycle.MutableLiveData
 import com.vohuy.mixueapp.base.BaseViewModel
 import com.vohuy.mixueapp.data.model.Order
 import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.data.model.Transaction
 import com.vohuy.mixueapp.data.repository.OrderRepository
+import com.vohuy.mixueapp.data.repository.PaymentRepository
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.Result
 import com.google.firebase.firestore.ListenerRegistration
@@ -16,6 +18,7 @@ import com.google.firebase.firestore.ListenerRegistration
 class OrderViewModel : BaseViewModel() {
 
     private val repository = OrderRepository()
+    private val paymentRepository = PaymentRepository() // 🆕 Tạo transaction
 
     private var ordersListener: ListenerRegistration? = null
 
@@ -34,7 +37,7 @@ class OrderViewModel : BaseViewModel() {
     /**
      * Tạo đơn hàng mới
      */
-    fun createOrder(userId: String, items: List<OrderItem>) {
+    fun createOrder(userId: String, items: List<OrderItem>, customerName: String = "") {
         if (items.isEmpty()) {
             setError("Giỏ hàng trống")
             return
@@ -45,6 +48,7 @@ class OrderViewModel : BaseViewModel() {
 
         val order = Order(
             userId = userId,
+            customerName = customerName, // 🆕 Lưu tên khách hàng
             items = items,
             status = Constants.ORDER_STATUS_PENDING,
             totalPrice = calculatedTotal
@@ -55,6 +59,22 @@ class OrderViewModel : BaseViewModel() {
                 is Result.Success -> {
                     _createdOrderId.value = result.data
                     setSuccess("Đơn hàng được tạo thành công!")
+                    
+                    // 🆕 Tự động tạo transaction thanh toán
+                    val transaction = Transaction(
+                        userId = userId,
+                        orderId = result.data,
+                        amount = calculatedTotal,
+                        paymentMethod = "CASH",
+                        status = "SUCCESS",
+                        description = "Thanh toán đơn hàng #${result.data}"
+                    )
+                    paymentRepository.createTransaction(transaction).observeForever { transactionResult ->
+                        if (transactionResult is Result.Error) {
+                            // Log error but don't fail the order
+                            println("⚠️ Lỗi tạo transaction: ${transactionResult.exception.message}")
+                        }
+                    }
                 }
                 is Result.Error -> {
                     setError(result.exception.message ?: "Không thể tạo đơn hàng")

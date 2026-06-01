@@ -29,7 +29,6 @@ export async function seedAll({ adminUid }) {
       price: vnd(25000),
       available: true,
       imageUrl: "https://placehold.co/600x400/png",
-      imagePath: "",
     },
     {
       id: "p_tra_sua_tc",
@@ -39,7 +38,6 @@ export async function seedAll({ adminUid }) {
       price: vnd(30000),
       available: true,
       imageUrl: "https://placehold.co/600x400/png",
-      imagePath: "",
     },
     {
       id: "p_kem_oc_que",
@@ -50,7 +48,6 @@ export async function seedAll({ adminUid }) {
       available: true,
       imageUrl:
         "https://vqupigbrkuucghnauwrb.supabase.co/storage/v1/object/public/StorageImage_MixueAndroid/products/ifoToN9pN1YZ28khZbew/main.jpg",
-      imagePath: "products/ifoToN9pN1YZ28khZbew/main.jpg",
     },
   ];
 

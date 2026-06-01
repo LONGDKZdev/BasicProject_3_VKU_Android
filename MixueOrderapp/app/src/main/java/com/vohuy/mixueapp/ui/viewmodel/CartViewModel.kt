@@ -39,7 +39,7 @@ class CartViewModel : BaseViewModel() {
                     productName = product.name,
                     quantity = quantity,
                     pricePerUnit = product.price,
-                    productImage = product.imageUrl,
+                    imageUrl = product.imageUrl,
                 )
             )
         }

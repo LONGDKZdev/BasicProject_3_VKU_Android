@@ -94,6 +94,9 @@ dependencies {
     // Compose Navigation
     implementation("androidx.navigation:navigation-compose:2.9.7")
     
+    // Compose Pull-to-Refresh
+    implementation("androidx.compose.material:material:1.8.1")
+    
     // Compose ViewModel & LiveData integration
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.1")
     implementation("androidx.compose.runtime:runtime-livedata")

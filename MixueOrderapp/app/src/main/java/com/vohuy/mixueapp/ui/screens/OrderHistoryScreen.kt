@@ -22,8 +22,13 @@ import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.formatPrice
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 
-@OptIn(ExperimentalMaterial3Api::class)
+import androidx.compose.material.ExperimentalMaterialApi
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun OrderHistoryScreen(
     navController: NavController,
@@ -46,6 +51,20 @@ fun OrderHistoryScreen(
         }
     }
 
+    // 🔄 Pull-to-refresh state
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            val uid = currentUser?.id
+            if (!uid.isNullOrBlank()) {
+                vm.loadUserOrders(uid)
+            }
+            isRefreshing = false
+        }
+    )
+
     val confirmedOrders = orders.filter { it.status in listOf(Constants.ORDER_STATUS_CONFIRMED, Constants.ORDER_STATUS_DELIVERING, Constants.ORDER_STATUS_DONE) }
     val pendingOrders = orders.filter { it.status == Constants.ORDER_STATUS_PENDING }
 
@@ -64,60 +83,73 @@ fun OrderHistoryScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .pullRefresh(pullRefreshState)
         ) {
-            if (orders.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Chưa có đơn hàng nào")
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // 📦 CONFIRMED ORDERS (Đã xác thực)
-                    if (confirmedOrders.isNotEmpty()) {
-                        item {
-                            Text(
-                                "✅ Đã Xác Thực",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        }
-                        items(confirmedOrders) { order ->
-                            OrderCard(order)
-                        }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (orders.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Chưa có đơn hàng nào")
                     }
-
-                    // ⏳ PENDING ORDERS (Chờ xác thực) - ĐẶT Ở DƯỚI
-                    if (pendingOrders.isNotEmpty()) {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "⏳ Chờ Xác Thực",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                modifier = Modifier.padding(8.dp)
-                            )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 📦 CONFIRMED ORDERS (Đã xác thực)
+                        if (confirmedOrders.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "✅ Đã Xác Thực",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                            items(confirmedOrders) { order ->
+                                OrderCard(order)
+                            }
                         }
-                        items(pendingOrders) { order ->
-                            PendingOrderCard(order)
+
+                        // ⏳ PENDING ORDERS (Chờ xác thực) - ĐẶT Ở DƯỚI
+                        if (pendingOrders.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "⏳ Chờ Xác Thực",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                            items(pendingOrders) { order ->
+                                PendingOrderCard(order)
+                            }
                         }
                     }
                 }
             }
+
+            // 🔄 Pull refresh indicator at the top
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
