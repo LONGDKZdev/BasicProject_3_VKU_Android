@@ -1,103 +1,84 @@
 import {
   collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
   doc,
-  serverTimestamp,
-  setDoc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-
 import { db, COLLECTIONS } from "../firebase.js";
 
-function vnd(n) {
-  const x = Number(n);
-  return Number.isFinite(x) ? x : 0;
+/**
+ * Get all transactions for a user.
+ */
+export async function getUserTransactions(userId) {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.transactions),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
+      limit(100)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error("Lỗi tải giao dịch:", error);
+    return [];
+  }
 }
 
 /**
- * Create demo data for the school project.
- * Safe to run multiple times (fixed IDs + merge).
+ * Listen to all transactions in real-time.
  */
-export async function seedAll({ adminUid }) {
-  if (!adminUid) throw new Error("adminUid is required");
-
-  // ----- Products -----
-  const products = [
-    {
-      id: "p_kem_vani",
-      name: "Kem Vani",
-      description: "Kem vani mát lạnh",
-      category: "Kem",
-      price: vnd(25000),
-      available: true,
-      imageUrl: "https://placehold.co/600x400/png",
-    },
-    {
-      id: "p_tra_sua_tc",
-      name: "Trà sữa trân châu",
-      description: "Trà sữa + trân châu",
-      category: "Trà sữa",
-      price: vnd(30000),
-      available: true,
-      imageUrl: "https://placehold.co/600x400/png",
-    },
-    {
-      id: "p_kem_oc_que",
-      name: "Kem ốc quế",
-      description: "Kem ốc quế Mixue",
-      category: "Kem",
-      price: vnd(10000),
-      available: true,
-      imageUrl:
-        "https://vqupigbrkuucghnauwrb.supabase.co/storage/v1/object/public/StorageImage_MixueAndroid/products/ifoToN9pN1YZ28khZbew/main.jpg",
-    },
-  ];
-
-  for (const p of products) {
-    await setDoc(
-      doc(db, COLLECTIONS.products, p.id),
-      {
-        ...p,
-        createdBy: adminUid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-  }
-
-  // ----- Orders (demo) -----
-  // Firestore rules require: create order => signedIn && request.resource.data.userId == request.auth.uid
-  // This means: whoever runs seedAll must be logged in as adminUid, so we can only create an order
-  // with userId = adminUid here (simple demo order).
-
-  const orderId = `demo_order_${Date.now()}`;
-  await setDoc(
-    doc(db, COLLECTIONS.orders, orderId),
-    {
-      userId: adminUid,
-      status: "PENDING",
-      totalPrice: products[0].price + products[2].price,
-      items: [
-        {
-          productId: products[0].id,
-          name: products[0].name,
-          price: products[0].price,
-          quantity: 1,
-          imageUrl: products[0].imageUrl,
-        },
-        {
-          productId: products[2].id,
-          name: products[2].name,
-          price: products[2].price,
-          quantity: 1,
-          imageUrl: products[2].imageUrl,
-        },
-      ],
-      createdAt: serverTimestamp(),
-      createdBy: adminUid,
-    },
-    { merge: true }
+export function listenTransactions(callback) {
+  const q = query(
+    collection(db, COLLECTIONS.transactions),
+    orderBy("createdAt", "desc"),
+    limit(200)
   );
 
-  return { productsCount: products.length, orderId };
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    callback(items);
+  });
 }
 
+/**
+ * Get transaction by ID.
+ */
+export async function getTransactionById(transactionId) {
+  try {
+    const snapshot = await getDoc(doc(db, COLLECTIONS.transactions, transactionId));
+
+    if (snapshot.exists()) {
+      return { id: snapshot.id, ...snapshot.data() };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Lỗi tải giao dịch:", error);
+    return null;
+  }
+}
+
+/**
+ * Get transactions by order ID.
+ */
+export async function getTransactionsByOrderId(orderId) {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.transactions),
+      where("orderId", "==", orderId)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error("Lỗi tải giao dịch theo đơn hàng:", error);
+    return [];
+  }
+}

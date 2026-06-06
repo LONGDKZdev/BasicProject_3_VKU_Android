@@ -5,7 +5,7 @@ import {
   rejectOrder,
   markPrepared
 } from "./admin-orders.js";
-import { showSuccess, showError } from "./toast.js";
+import { showSuccess, showError, showToast } from "./toast.js";
 
 /**
  * Initialize Orders Tab - hiển thị tất cả đơn hàng
@@ -58,10 +58,11 @@ function renderPendingOrdersTable(table, orders) {
       : "-";
     const customerName = order.customerName || order.userId || "-";
 
-    row.innerHTML = `
+row.innerHTML = `
       <td><code>${order.id}</code></td>
       <td>${customerName}</td>
       <td class="text-right font-bold">${formatPrice(order.totalPrice || 0)}</td>
+      <td>${statusBadge}</td>
       <td>${createdAt}</td>
       <td>
         <div class="row row--compact">
@@ -69,7 +70,7 @@ function renderPendingOrdersTable(table, orders) {
             ✅ Xác Thực
           </button>
           <button class="btn btn--small btn--danger" onclick="window.rejectOrderFn('${order.id}')">
-            ❌ Từ Chối
+            ❌ Hủy
           </button>
           <button class="btn btn--small btn--info" onclick="window.printInvoiceFn('${order.id}')">
             📄 In
@@ -111,7 +112,6 @@ function renderAllOrdersTable(table, orders) {
     row.innerHTML = `
       <td><code>${order.id}</code></td>
       <td>${customerName}</td>
-      <td>${order.userId || "-"}</td>
       <td class="text-right font-bold">${formatPrice(order.totalPrice || 0)}</td>
       <td>${statusBadge}</td>
       <td>${createdAt}</td>
@@ -154,33 +154,34 @@ function getStatusBadge(status) {
   return badges[status] || `<span class="badge">${status}</span>`;
 }
 
-/**
- * Confirm order (Global function)
- */
-window.confirmOrderFn = async function (orderId) {
-  if (!confirm("Xác nhận đơn hàng này?")) return;
+// HÀM XÁC THỰC ĐƠN HÀNG
+window.confirmOrderFn = async (id) => {
+  if (!confirm("Xác thực đơn hàng này?")) return;
   try {
-    await confirmOrder(orderId);
-    showSuccess("✅ Đơn hàng đã được xác nhận");
-    initOrdersTab(); // Refresh UI
-  } catch (error) {
-    showError("❌ Lỗi: " + error.message);
+    // Gọi hàm confirmOrder đã được import từ admin-orders.js
+    await confirmOrder(id);
+    showToast(" Đã xác thực đơn hàng!", "success");
+    // Ép giao diện tự động tải lại bảng
+    document.getElementById('btnReloadOrders').click();
+    document.getElementById('btnReloadPayments')?.click();
+  } catch (e) {
+    showToast("Lỗi: " + e.message, "error");
   }
 };
 
-/**
- * Reject order (Global function)
- */
-window.rejectOrderFn = async function (orderId) {
-  const reason = prompt("Lý do từ chối (tuỳ chọn):", "");
+// HÀM HỦY ĐƠN HÀNG
+window.rejectOrderFn = async (id) => {
+  const reason = prompt("Lý do hủy đơn hàng:");
   if (reason === null) return;
-
   try {
-    await rejectOrder(orderId, reason);
-    showSuccess("❌ Đơn hàng đã bị từ chối");
-    initOrdersTab(); // Refresh UI
-  } catch (error) {
-    showError("❌ Lỗi: " + error.message);
+    // Gọi hàm rejectOrder đã được import từ admin-orders.js
+    await rejectOrder(id, reason);
+    showToast(" Đã hủy đơn hàng!", "success");
+    // Ép giao diện tự động tải lại bảng
+    document.getElementById('btnReloadOrders').click();
+    document.getElementById('btnReloadPayments')?.click();
+  } catch (e) {
+    showToast("Lỗi: " + e.message, "error");
   }
 };
 
@@ -198,7 +199,7 @@ window.printInvoiceFn = async function (orderId) {
       });
     }
   } catch (error) {
-    showError("❌ Lỗi in: " + error.message);
+    showError(" Lỗi in: " + error.message);
   }
 };
 

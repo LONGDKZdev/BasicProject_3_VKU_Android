@@ -23,6 +23,10 @@ const els = {
   email: $("email"),
   password: $("password"),
   btnSubmitAuth: $("btnSubmitAuth"),
+  fullName: $("fullName"),
+  confirmPassword: $("confirmPassword"),
+  registerFields: $("registerFields"),
+  registerFieldsConfirm: $("registerFieldsConfirm"),
   btnSendVerify: $("btnSendVerify"),
   verifyHint: $("verifyHint"),
   tabModeLogin: $("tabModeLogin"),
@@ -36,7 +40,7 @@ const els = {
   cardAdmin: $("cardAdmin"),
   cardNotAdmin: $("cardNotAdmin"),
    // tabs
-   tabButtons: Array.from(document.querySelectorAll(".tab")),
+   tabButtons: Array.from(document.querySelectorAll(".admin-tab")),
    tabProducts: $("tab-products"),
    tabOrders: $("tab-orders"),
    tabPayments: $("tab-payments"), // 🆕
@@ -161,6 +165,16 @@ function refreshPaymentsTable() {
   unsubPayments = paymentsService.listenTransactions((items) => {
     tbody.innerHTML = "";
 
+// Chỉ cộng tiền những giao dịch có status là SUCCESS
+    const totalRevenue = items
+      .filter(payment => payment.status === 'SUCCESS')
+      .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+
+    const statRevenueEl = document.getElementById("statRevenue");
+    if (statRevenueEl) {
+      statRevenueEl.textContent = formatPrice(totalRevenue);
+    }
+
     if (items.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="muted text-center">Không có giao dịch nào</td></tr>`;
       return;
@@ -174,15 +188,15 @@ function refreshPaymentsTable() {
 
       const statusBadge = getPaymentStatusBadge(payment.status || "SUCCESS");
       const methodBadge = getPaymentMethodBadge(payment.paymentMethod || "CASH");
-
+      const customerName = payment.customerName || payment.userId?.substring(0, 8) || "-";
       row.innerHTML = `
         <td><code>${escapeHtml(payment.id?.substring(0, 8) || "")}</code></td>
-        <td><code>${escapeHtml(payment.userId?.substring(0, 8) || "")}</code></td>
+        <td class="font-bold">${escapeHtml(customerName)}</td>
         <td><code>${escapeHtml(payment.orderId || "")}</code></td>
-        <td class="text-right font-bold">${formatPrice(payment.amount || 0)}</td>
+        <td class="text-right font-bold" style="color: var(--primary);">${formatPrice(payment.amount || 0)}</td>
         <td>${methodBadge}</td>
         <td>${statusBadge}</td>
-        <td>${createdAt}</td>
+        <td class="muted small">${createdAt}</td>
       `;
       tbody.appendChild(row);
     });
@@ -208,9 +222,17 @@ function getPaymentMethodBadge(method) {
 }
 
 function switchTab(tabName) {
-  for (const b of els.tabButtons) {
-    b.classList.toggle("nav-item--active", b.getAttribute("data-tab") === tabName);
-  }
+  const adminTabs = document.querySelectorAll(".admin-tab");
+
+  adminTabs.forEach(btn => {
+    if (btn.getAttribute("data-tab") === tabName) {
+      btn.classList.add("tab--active");
+    } else {
+      btn.classList.remove("tab--active");
+    }
+  });
+
+  // Chuyển đổi nội dung bên dưới
   setHidden(els.tabProducts, tabName !== "products");
   setHidden(els.tabOrders, tabName !== "orders");
   setHidden(els.tabPayments, tabName !== "payments");
@@ -226,6 +248,12 @@ function escapeHtml(s) {
 }
 function escapeAttr(s) {
   return escapeHtml(s).replaceAll("`", "&#096;");
+}
+function formatPrice(price) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND"
+  }).format(price);
 }
 function cssEscape(s) {
   return CSS?.escape ? CSS.escape(String(s ?? "")) : String(s ?? "").replaceAll('"', "\\\"");
@@ -248,6 +276,8 @@ if (els.tabModeLogin && els.tabModeRegister) {
     els.tabModeLogin.classList.add("tab--active");
     els.tabModeRegister.classList.remove("tab--active");
     els.btnSubmitAuth.textContent = "Đăng nhập";
+    setHidden(els.registerFields, true);
+    setHidden(els.registerFieldsConfirm, true);
     if (els.verifyHint) els.verifyHint.textContent = "";
   };
 
@@ -257,6 +287,8 @@ if (els.tabModeLogin && els.tabModeRegister) {
     els.tabModeRegister.classList.add("tab--active");
     els.tabModeLogin.classList.remove("tab--active");
     els.btnSubmitAuth.textContent = "Đăng ký";
+    setHidden(els.registerFields, false);
+    setHidden(els.registerFieldsConfirm, false);
     if (els.verifyHint) els.verifyHint.textContent = "";
   };
 }
@@ -266,39 +298,38 @@ if (els.authForm) {
     ev.preventDefault();
     const email = (els.email.value || "").trim();
     const password = els.password.value;
-    if (!email || !password) return;
-    try {
-                       els.btnSubmitAuth.disabled = true;
-                       if (isLoginMode) {
-                         await authService.login(email, password);
-                       } else {
-                         // Use register from auth.js (which creates user + sets ADMIN role)
-                         await register(email, password);
-                         showSuccess("✅ Đăng ký thành công! Tài khoản admin đã được tạo.");
-                         // Reset form
-                         els.email.value = "";
-                         els.password.value = "";
-                       }
-                     } catch (e) {
-                       showError("❌ Lỗi: " + (e?.message ?? String(e)));
-    } finally {
-      els.btnSubmitAuth.disabled = false;
-    }
-  };
-}
 
-// Email verification disabled: button may be removed from HTML.
-if (els.btnSendVerify) {
-  els.btnSendVerify.onclick = async () => {
-    try {
-      els.btnSendVerify.disabled = true;
-      await authService.sendVerificationEmail();
-      showSuccess("📧 Đã gửi email xác minh. Hãy kiểm tra inbox/spam rồi đăng nhập lại.");
-    } catch (e) {
-      showError("❌ Lỗi: " + (e?.message ?? String(e)));
-    } finally {
-      // will be re-enabled based on state
-      els.btnSendVerify.disabled = false;
+    if (!email || !password) return;
+
+    if (!isLoginMode) {
+      const fullName = (els.fullName.value || "").trim();
+      const confirmPassword = els.confirmPassword.value;
+      if (!fullName) { showError("❌ Vui lòng nhập họ và tên"); return; }
+      if (password !== confirmPassword) { showError("❌ Mật khẩu không khớp!"); return; }
+
+      try {
+        els.btnSubmitAuth.disabled = true;
+        await register(email, password, fullName);
+        showSuccess("✅ Đăng ký thành công! Tài khoản admin đã được tạo.");
+        els.email.value = "";
+        els.password.value = "";
+        els.fullName.value = "";
+        els.confirmPassword.value = "";
+        els.tabModeLogin.onclick(); // Chuyển về tab đăng nhập
+      } catch (e) {
+        showError("❌ Lỗi: " + (e?.message ?? String(e)));
+      } finally {
+        els.btnSubmitAuth.disabled = false;
+      }
+    } else {
+      try {
+        els.btnSubmitAuth.disabled = true;
+        await authService.login(email, password);
+      } catch (e) {
+        showError("❌ Lỗi: " + (e?.message ?? String(e)));
+      } finally {
+        els.btnSubmitAuth.disabled = false;
+      }
     }
   };
 }
@@ -417,6 +448,7 @@ if (els.productForm) {
   };
 }
 
+
 // ---------- Auth state -> role gating ----------
 authService.listen(async (user) => {
   clearLog();
@@ -447,21 +479,6 @@ authService.listen(async (user) => {
 
   const role = await authService.getUserRole(user.uid);
 
-  // ✅ Requirement change: email verification is not used.
-  // Keep the old UI logic commented for later/reference.
-  /*
-  // Email verification UI
-  if (user.emailVerified) {
-    els.btnSendVerify.disabled = true;
-    if (els.verifyHint) els.verifyHint.textContent = "Email đã xác minh.";
-  } else {
-    els.btnSendVerify.disabled = false;
-    if (els.verifyHint) {
-      els.verifyHint.textContent =
-        "Bạn chưa xác minh email. Hãy bấm 'Gửi email xác minh' rồi kiểm tra Inbox/Spam. Sau khi xác minh, hãy đăng xuất/đăng nhập lại.";
-    }
-  }
-  */
   // Hide/disable verify button to avoid confusion.
   if (els.btnSendVerify) els.btnSendVerify.disabled = true;
   if (els.verifyHint) els.verifyHint.textContent = "";
@@ -495,6 +512,23 @@ authService.listen(async (user) => {
      await refreshProductsTable();
      initOrdersTab(); // 🔄 Use new orders UI
      refreshPaymentsTable(); // 🆕 Load payments
+
+     // --- BỔ SUNG LOGIC ĐẾM SỐ LƯỢNG ĐƠN HÀNG (REALTIME) ---
+          import("./services/ordersService.js").then(({ ordersService }) => {
+            import("./admin-orders.js").then(({ listenOrders }) => {
+               listenOrders(500, (orders) => {
+                 const successCount = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'DELIVERING' || o.status === 'DONE').length;
+                 const cancelledCount = orders.filter(o => o.status === 'CANCELLED').length;
+
+                 const statSuccessEl = document.getElementById("statSuccessOrders");
+                 const statCancelEl = document.getElementById("statCancelledOrders");
+
+                 if (statSuccessEl) statSuccessEl.textContent = successCount;
+                 if (statCancelEl) statCancelEl.textContent = cancelledCount;
+               });
+            });
+          });
+
   } else {
     setHidden(els.cardAdmin, true);
     setHidden(els.cardNotAdmin, false);
@@ -502,20 +536,6 @@ authService.listen(async (user) => {
 
     // Helpful hint: most blocks are from unverified email (ADMIN is auto-granted on web register)
     if (els.verifyHint) {
-      // ✅ Requirement change: only role gating is relevant.
-      // Keep old verification-related hints for later/reference.
-      /*
-      if (!user.emailVerified) {
-        els.verifyHint.textContent =
-          "Bạn bị chặn vì CHƯA XÁC MINH EMAIL. Hãy kiểm tra Inbox/Spam, bấm link xác minh, rồi đăng xuất/đăng nhập lại.";
-      } else if (role !== ROLES.admin) {
-        els.verifyHint.textContent =
-          "Email đã xác minh, nhưng Firestore role chưa phải ADMIN. Hãy kiểm tra: users/{uid}.role = ADMIN";
-      } else {
-        // Edge-case: verified + role admin but still blocked due to stale client state
-        els.verifyHint.textContent = "Nếu bạn vừa xác minh email, hãy thử đăng xuất/đăng nhập lại hoặc tải lại trang.";
-      }
-      */
       if (role !== ROLES.admin) {
         els.verifyHint.textContent =
           "Bạn không có quyền ADMIN. Hãy kiểm tra Firestore: users/{uid}.role = ADMIN";

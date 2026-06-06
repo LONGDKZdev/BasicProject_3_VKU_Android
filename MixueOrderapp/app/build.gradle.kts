@@ -129,7 +129,6 @@ dependencies {
     // Các dịch vụ Firebase cho đồ án Mixue
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")
 
     // --- Supabase (Storage) ---
     // We only use Supabase for image storage (public bucket).

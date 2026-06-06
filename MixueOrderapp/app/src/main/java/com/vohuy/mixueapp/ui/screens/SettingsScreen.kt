@@ -270,6 +270,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // ==================== DISPLAY SECTION ====================
+            /*
             Text(
                 text = "Hiển Thị",
                 style = MaterialTheme.typography.titleMedium,
@@ -324,7 +325,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
+            */
             // ==================== ABOUT SECTION ====================
             Card(
                 modifier = Modifier

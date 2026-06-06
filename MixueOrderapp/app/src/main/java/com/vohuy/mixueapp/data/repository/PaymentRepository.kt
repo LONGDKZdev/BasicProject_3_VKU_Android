@@ -2,31 +2,51 @@ package com.vohuy.mixueapp.data.repository
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.google.firebase.firestore.Query
 import com.vohuy.mixueapp.base.BaseRepository
 import com.vohuy.mixueapp.data.model.Transaction
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.ErrorHandler
 import com.vohuy.mixueapp.utils.Result
-import com.google.firebase.firestore.Query
 
 /**
- * PaymentRepository - Xử lý lịch sử giao dịch thanh toán từ Firebase
+ * PaymentRepository - Xử lý lịch sử giao dịch thanh toán từ Firestore.
  */
 class PaymentRepository : BaseRepository() {
 
     /**
-     * Tạo giao dịch mới
+     * Tạo giao dịch mới.
      */
     fun createTransaction(transaction: Transaction): LiveData<Result<String>> {
         val result = MutableLiveData<Result<String>>()
         result.value = Result.Loading()
 
+        val normalizedPaymentMethod = transaction.paymentMethod.uppercase()
+        val normalizedStatus = transaction.status.uppercase()
+
+        if (normalizedPaymentMethod !in Constants.VALID_PAYMENT_METHODS) {
+            result.value = Result.Error(Exception("Phương thức thanh toán không hợp lệ"))
+            return result
+        }
+
+        if (normalizedStatus !in Constants.VALID_TRANSACTION_STATUSES) {
+            result.value = Result.Error(Exception("Trạng thái giao dịch không hợp lệ"))
+            return result
+        }
+
+        val transactionId = firestore
+            .collection(Constants.COLLECTION_TRANSACTIONS)
+            .document()
+            .id
+
         val newTransaction = transaction.copy(
-            id = firestore.collection("transactions").document().id,
+            id = transactionId,
+            paymentMethod = normalizedPaymentMethod,
+            status = normalizedStatus,
             createdAt = System.currentTimeMillis()
         )
 
-        firestore.collection("transactions")
+        firestore.collection(Constants.COLLECTION_TRANSACTIONS)
             .document(newTransaction.id)
             .set(newTransaction)
             .addOnSuccessListener {
@@ -41,50 +61,44 @@ class PaymentRepository : BaseRepository() {
     }
 
     /**
-     * Lấy lịch sử giao dịch của user
+     * Lắng nghe lịch sử giao dịch của user theo thời gian thực.
      */
-    fun getUserTransactions(userId: String): LiveData<Result<List<Transaction>>> {
-        val result = MutableLiveData<Result<List<Transaction>>>()
-        result.value = Result.Loading()
+    fun listenUserTransactions(
+        userId: String,
+        onResult: (Result<List<Transaction>>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration {
+        onResult(Result.Loading())
 
-        firestore.collection("transactions")
-            .whereEqualTo("userId", userId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(100)
+        return firestore.collection(Constants.COLLECTION_TRANSACTIONS)
+            .whereEqualTo(Constants.FIELD_TRANSACTION_USER_ID, userId)
+            // Tạm thời bỏ .orderBy nếu bạn chưa tạo Index trên Firebase để tránh crash
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     val errorMessage = ErrorHandler.getErrorMessage(error)
-                    result.value = Result.Error(Exception(errorMessage))
+                    onResult(Result.Error(Exception(errorMessage)))
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null) {
-                    val transactions = snapshot.toObjects(Transaction::class.java)
-                    result.value = Result.Success(transactions)
-                }
+                val transactions = snapshot?.toObjects(Transaction::class.java).orEmpty()
+                    .sortedByDescending { it.createdAt } // Sắp xếp bằng Kotlin
+                onResult(Result.Success(transactions))
             }
-
-        return result
     }
 
     /**
-     * Lấy giao dịch theo ID
+     * Lấy giao dịch theo ID.
      */
     fun getTransactionById(transactionId: String): LiveData<Result<Transaction>> {
         val result = MutableLiveData<Result<Transaction>>()
         result.value = Result.Loading()
 
-        firestore.collection("transactions")
+        firestore.collection(Constants.COLLECTION_TRANSACTIONS)
             .document(transactionId)
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot.exists()) {
-                    val transaction = snapshot.toObject(Transaction::class.java)
-                    if (transaction != null) {
-                        result.value = Result.Success(transaction)
-                    } else {
-                        result.value = Result.Error(Exception("Không thể chuyển đổi dữ liệu"))
-                    }
+                val transaction = snapshot.toObject(Transaction::class.java)
+                if (transaction != null) {
+                    result.value = Result.Success(transaction)
                 } else {
                     result.value = Result.Error(Exception("Giao dịch không tồn tại"))
                 }
@@ -98,15 +112,21 @@ class PaymentRepository : BaseRepository() {
     }
 
     /**
-     * Cập nhật trạng thái giao dịch
+     * Cập nhật trạng thái giao dịch.
      */
     fun updateTransactionStatus(transactionId: String, status: String): LiveData<Result<Unit>> {
         val result = MutableLiveData<Result<Unit>>()
         result.value = Result.Loading()
 
-        firestore.collection("transactions")
+        val normalizedStatus = status.uppercase()
+        if (normalizedStatus !in Constants.VALID_TRANSACTION_STATUSES) {
+            result.value = Result.Error(Exception("Trạng thái giao dịch không hợp lệ"))
+            return result
+        }
+
+        firestore.collection(Constants.COLLECTION_TRANSACTIONS)
             .document(transactionId)
-            .update("status", status)
+            .update(Constants.FIELD_TRANSACTION_STATUS, normalizedStatus)
             .addOnSuccessListener {
                 result.value = Result.Success(Unit)
             }
@@ -117,5 +137,58 @@ class PaymentRepository : BaseRepository() {
 
         return result
     }
-}
 
+    /**
+     * Cập nhật trạng thái giao dịch theo orderId.
+     */
+    fun updateTransactionsStatusByOrderId(
+        orderId: String,
+        status: String
+    ): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        result.value = Result.Loading()
+
+        val normalizedStatus = status.uppercase()
+        if (normalizedStatus !in Constants.VALID_TRANSACTION_STATUSES) {
+            result.value = Result.Error(Exception("Trạng thái giao dịch không hợp lệ"))
+            return result
+        }
+
+        firestore.collection(Constants.COLLECTION_TRANSACTIONS)
+            .whereEqualTo(Constants.FIELD_TRANSACTION_ORDER_ID, orderId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    result.value = Result.Success(Unit)
+                    return@addOnSuccessListener
+                }
+
+                var pendingUpdates = snapshot.size()
+                var hasError = false
+
+                snapshot.documents.forEach { document ->
+                    document.reference
+                        .update(Constants.FIELD_TRANSACTION_STATUS, normalizedStatus)
+                        .addOnSuccessListener {
+                            pendingUpdates--
+                            if (pendingUpdates == 0 && !hasError) {
+                                result.value = Result.Success(Unit)
+                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            if (!hasError) {
+                                hasError = true
+                                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                                result.value = Result.Error(Exception(errorMessage))
+                            }
+                        }
+                }
+            }
+            .addOnFailureListener { exception ->
+                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
+                result.value = Result.Error(Exception(errorMessage))
+            }
+
+        return result
+    }
+}

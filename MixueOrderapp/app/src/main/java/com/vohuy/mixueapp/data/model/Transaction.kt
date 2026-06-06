@@ -9,6 +9,7 @@ import java.util.*
 data class Transaction(
     val id: String = "",
     val userId: String = "",
+    val customerName: String = "",
     val orderId: String = "",
     val amount: Double = 0.0,
     val paymentMethod: String = "CASH", // CASH, CARD, WALLET

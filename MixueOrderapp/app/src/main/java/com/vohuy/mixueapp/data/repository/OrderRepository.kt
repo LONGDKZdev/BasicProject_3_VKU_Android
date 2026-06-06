@@ -13,9 +13,11 @@ import com.google.firebase.firestore.ListenerRegistration
  * OrderRepository - Xử lý tất cả logic đơn hàng từ Firebase
  * DRY Principle: Tất cả Firestore Order operations ở đây
  */
-
 class OrderRepository : BaseRepository() {
 
+    /**
+     * Lắng nghe danh sách đơn hàng theo user (real-time)
+     */
     /**
      * Lắng nghe danh sách đơn hàng theo user (real-time)
      */
@@ -27,10 +29,6 @@ class OrderRepository : BaseRepository() {
 
         return firestore.collection(Constants.COLLECTION_ORDERS)
             .whereEqualTo(Constants.FIELD_ORDER_USER_ID, userId)
-            .orderBy(
-                Constants.FIELD_ORDER_CREATED_AT,
-                com.google.firebase.firestore.Query.Direction.DESCENDING
-            )
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     val errorMessage = ErrorHandler.getErrorMessage(error)
@@ -40,6 +38,7 @@ class OrderRepository : BaseRepository() {
 
                 if (snapshot != null) {
                     val orders = snapshot.toObjects(Order::class.java)
+                        .sortedByDescending { it.createdAt }
                     onResult(Result.Success(orders))
                 }
             }
@@ -66,33 +65,6 @@ class OrderRepository : BaseRepository() {
             .addOnFailureListener { exception ->
                 val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
                 result.value = Result.Error(Exception(errorMessage))
-            }
-
-        return result
-    }
-
-    /**
-     * Lấy tất cả đơn hàng của user
-     */
-    fun getUserOrders(userId: String): LiveData<Result<List<Order>>> {
-        val result = MutableLiveData<Result<List<Order>>>()
-        result.value = Result.Loading()
-
-        firestore.collection(Constants.COLLECTION_ORDERS)
-            .whereEqualTo(Constants.FIELD_ORDER_USER_ID, userId)
-            .orderBy(Constants.FIELD_ORDER_CREATED_AT, com.google.firebase.firestore.Query.Direction.DESCENDING)
-            // NÂNG CẤP: Đổi .get() thành Lắng nghe Real-time
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    val errorMessage = ErrorHandler.getErrorMessage(error)
-                    result.value = Result.Error(Exception(errorMessage))
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val orders = snapshot.toObjects(Order::class.java)
-                    result.value = Result.Success(orders)
-                }
             }
 
         return result

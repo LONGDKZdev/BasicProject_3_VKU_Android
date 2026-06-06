@@ -29,14 +29,14 @@
         .invoice-header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #FF6B6B;
+            border-bottom: 2px solid #E60012;
             padding-bottom: 20px;
         }
 
         .logo {
             font-size: 28px;
             font-weight: bold;
-            color: #FF6B6B;
+            color: #E60012;
             margin-bottom: 5px;
         }
 
@@ -84,7 +84,7 @@
         th {
             padding: 12px;
             text-align: left;
-            border-bottom: 2px solid #FF6B6B;
+            border-bottom: 2px solid #E60012;
             font-weight: bold;
             color: #333;
         }
@@ -105,7 +105,7 @@
         .summary {
             margin-left: auto;
             width: 300px;
-            border: 1px solid #FF6B6B;
+            border: 1px solid #E60012;
             padding: 20px;
             border-radius: 5px;
         }
@@ -118,18 +118,18 @@
         }
 
         .summary-row.total {
-            border-top: 2px solid #FF6B6B;
+            border-top: 2px solid #E60012;
             padding-top: 10px;
             font-weight: bold;
             font-size: 16px;
-            color: #FF6B6B;
+            color: #E60012;
         }
 
         .note {
             margin-top: 30px;
             padding: 15px;
             background: #f9f9f9;
-            border-left: 4px solid #FF6B6B;
+            border-left: 4px solid #E60012;
             font-size: 12px;
             color: #666;
         }
@@ -330,14 +330,14 @@
             }).format(price);
         }
 
-        function getStatusText(status) {
+function getStatusText(status) {
             const statuses = {
-                pending: "⏳ Chờ Xác Thực",
-                confirmed: "✅ Đã Xác Thực",
-                preparing: "🔨 Đang Chuẩn Bị",
-                delivering: "🚚 Đang Giao",
-                done: "✔️ Đã Giao",
-                cancelled: "✗ Đã Hủy"
+                PENDING: "⏳ Chờ Xác Thực",
+                CONFIRMED: "✅ Đã Xác Thực",
+                PREPARING: "🔨 Đang Chuẩn Bị",
+                DELIVERING: "🚚 Đang Giao",
+                DONE: "✔️ Đã Giao",
+                CANCELLED: "✗ Đã Hủy"
             };
             return statuses[status] || status;
         }

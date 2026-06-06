@@ -51,15 +51,19 @@ class AuthViewModel : BaseViewModel() {
             override fun onChanged(value: Result<User>) {
                 when (value) {
                     is Result.Success -> {
-                        _currentUser.value = value.data
-                        setSuccess("Đăng nhập thành công!")
-                        // HỦY LẮNG NGHE NGAY LẬP TỨC để chặn đứng vòng lặp nhấp nháy màn hình
-                        liveData.removeObserver(this)
-                        // Reset currentUser sau khi điều hướng để tránh vòng lặp
-                        // Delay 500ms để cho LoginScreen có thời gian navigate tới HOME
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            _currentUser.value = null
-                        }, 500)
+                        // BỔ SUNG KIỂM TRA QUYỀN: Chặn ADMIN đăng nhập vào App
+                        if (value.data.role == "ADMIN") {
+                            repository.logoutUser() // Ép đăng xuất ngay lập tức
+                            setError("Tài khoản ADMIN không được phép đăng nhập vào ứng dụng di động!")
+                            liveData.removeObserver(this)
+                        } else {
+                            _currentUser.value = value.data
+                            setSuccess("Đăng nhập thành công!")
+                            liveData.removeObserver(this)
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                _currentUser.value = null
+                            }, 500)
+                        }
                     }
                     is Result.Error -> {
                         setError(value.exception.message ?: "Đăng nhập thất bại")

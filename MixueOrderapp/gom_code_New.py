@@ -1,8 +1,7 @@
 import os
+from datetime import datetime
 
 # 1. Cấu hình giới hạn kích thước mỗi file (tính bằng số lượng ký tự)
-# 300,000 ký tự (khoảng ~300KB) là mức rất lý tưởng. 
-# AI sẽ đọc trơn tru, không bị quên trước quên sau và web không bị đơ.
 MAX_CHARS_PER_FILE = 300000 
 
 # 2. Lọc danh sách thư mục rác, thư viện, thư mục tự build (BỎ QUA)
@@ -26,14 +25,12 @@ EXCLUDE_FILES = {
     'package-lock.json', 'gradle-wrapper.properties'
 }
 
-OUTPUT_PREFIX = 'gom_code_part_'
+# TỰ ĐỘNG THÊM GIỜ VÀO TÊN FILE (Định dạng: ngày-tháng-năm_GiờhPhútp)
+time_str = datetime.now().strftime("%d-%m-%Y_%Hh%Mp")
 
 def is_valid_file(filepath, filename):
-    # Lọc file theo tên (các file cấm)
     if filename in EXCLUDE_FILES:
         return False
-        
-    # Lọc file theo đuôi (chỉ lấy code)
     _, ext = os.path.splitext(filepath)
     return ext.lower() in INCLUDE_EXTENSIONS
 
@@ -44,12 +41,11 @@ def generate_project_chunks():
     current_content = []
     current_char_count = 0
     
-    # Tạo Header cho file đầu tiên
-    current_content.append(f"# TỔNG HỢP MÃ NGUỒN DỰ ÁN  (PHẦN {current_chunk_idx})\n")
+    # Tiêu đề file đầu tiên KHÔNG GHI part 1 nữa để tránh hiểu nhầm
+    current_content.append(f"# TỔNG HỢP MÃ NGUỒN DỰ ÁN\n")
     current_content.append("=" * 50 + "\n")
 
     for dirpath, dirnames, filenames in os.walk(root_dir):
-        # Lọc bỏ thư mục rác (quan trọng: dùng slice assignment để sửa trực tiếp list của os.walk)
         dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS]
         
         for filename in filenames:
@@ -65,13 +61,12 @@ def generate_project_chunks():
                         file_block = f"\n\n{'='*50}\n### FILE: {rel_path}\n{'='*50}\n```\n{content}\n```\n"
                         block_len = len(file_block)
                         
-                        # Nếu thêm file này vào mà bị quá tải -> Lưu file cũ, tạo file part mới
                         if current_char_count + block_len > MAX_CHARS_PER_FILE and current_char_count > 0:
                             save_chunk(current_chunk_idx, current_content)
                             
-                            # Khởi tạo lại biến cho file part tiếp theo
                             current_chunk_idx += 1
-                            current_content = [f"# TỔNG HỢP MÃ NGUỒN DỰ ÁN  (PHẦN {current_chunk_idx})\n" + "=" * 50 + "\n"]
+                            # File số 2 trở đi mới ghi thêm chữ (PHẦN 2...)
+                            current_content = [f"# TỔNG HỢP MÃ NGUỒN DỰ ÁN (PHẦN {current_chunk_idx})\n" + "=" * 50 + "\n"]
                             current_char_count = len(current_content[0])
                             
                         current_content.append(file_block)
@@ -80,22 +75,26 @@ def generate_project_chunks():
                 except Exception as e:
                     print(f"⚠️ Bỏ qua file do không thể đọc dưới dạng văn bản: {rel_path}")
 
-    # Lưu phần code cuối cùng còn dư (nếu có)
     if current_content and current_char_count > len(current_content[0]):
         save_chunk(current_chunk_idx, current_content)
 
 def save_chunk(idx, content_list):
-    filename = f"{OUTPUT_PREFIX}{idx}.txt"
+    # Chỉ file số 2 trở đi mới có đuôi part
+    if idx == 1:
+        filename = f"gom_code_{time_str}.txt"
+    else:
+        filename = f"gom_code_{time_str}_part_{idx}.txt"
+        
     with open(filename, 'w', encoding='utf-8') as out_f:
         out_f.write("".join(content_list))
     print(f"✅ Đã tạo file: {filename}")
 
 if __name__ == "__main__":
     print("⏳ Đang quét và chia nhỏ mã nguồn...")
-    # Xóa các file part cũ đi (nếu có) để tránh dữ liệu bị trùng lặp
     for f in os.listdir('.'):
-        if f.startswith(OUTPUT_PREFIX) and f.endswith('.txt'):
+        if f.startswith('gom_code_') and f.endswith('.txt'):
             os.remove(f)
             
     generate_project_chunks()
     print("🎉 Hoàn tất!")
+    input("Nhấn Enter để thoát...")

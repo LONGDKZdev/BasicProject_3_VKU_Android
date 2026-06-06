@@ -2,12 +2,12 @@ package com.vohuy.mixueapp.base
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 
 /**
- * Abstract BaseRepository - Quản lý Firebase instances chung
- * DRY Principle: Không cần khởi tạo Firebase ở mỗi Repository
- * Tất cả Repository phải kế thừa lớp này
+ * BaseRepository
+ *
+ * Chỉ quản lý Firebase Auth và Firestore.
+ * Ảnh của dự án được lưu bằng Supabase Storage, không dùng Firebase Storage.
  */
 open class BaseRepository {
 
@@ -19,10 +19,6 @@ open class BaseRepository {
         FirebaseFirestore.getInstance()
     }
 
-    protected val storage: FirebaseStorage by lazy {
-        FirebaseStorage.getInstance()
-    }
-
     /**
      * Lấy ID của user hiện tại
      */
@@ -31,7 +27,7 @@ open class BaseRepository {
     }
 
     /**
-     * Check xem user đã đăng nhập chưa
+     * Kiểm tra user đã đăng nhập chưa
      */
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null
@@ -44,4 +40,3 @@ open class BaseRepository {
         auth.signOut()
     }
 }
-

@@ -1,6 +1,13 @@
-# Gradle files
-gradle/
+# Temporary build folders and kotlin tooling
+.gradle/
+.kotlin/
+**/build/
+**/.gradle/
+**/.kotlin/
 build/
+out/
+bin/
+gen/
 
 # Local configuration file (SDK path, etc.)
 local.properties
@@ -15,19 +22,16 @@ local.properties
 # Java class files
 *.class
 
-# Generated files
-bin/
-gen/
-out/
-
 # Android Studio specific files
-idea/
+.idea/
 *.iml
-idea/workspace.xml
-idea/tasks.xml
-idea/libraries/
-idea/caches/
-idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/libraries/
+.idea/caches/
+.idea/modules.xml
+captures/
+navigation/
 
 # Keystore files (for signing)
 *.jks
@@ -44,9 +48,10 @@ obj/
 
 # Log files
 *.log
+**/*.log
 
 # OS-specific files
-DS_Store
+.DS_Store
 Thumbs.db
 
 # Crashlytics/Fabric plugin files
@@ -57,8 +62,11 @@ fabric.properties
 # ProGuard generated files and folders
 proguard/
 
-# Captures folder (Android Studio)
-captures/
-
-# Navigation editor temp files (Android Studio)
-navigation/
+# Aggregated code files & list files
+gom_code_part_1.txt
+docs/Danh_sach_file_auto.txt
+docs/gom_code_New_17-5-2026.txt
+*gom_code*.txt
+*Danh_sach_file*.txt
+**/gom_code_*.txt
+**/Danh_sach_file_*.txt

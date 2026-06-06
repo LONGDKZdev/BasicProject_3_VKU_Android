@@ -229,12 +229,12 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    "SL: ${item.quantity} x ${item.pricePerUnit.formatPrice()}",
+                    "SL: ${item.quantity} x ${item.price.formatPrice()}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "Thành tiền: ${(item.quantity * item.pricePerUnit).formatPrice()}",
+                    "Thành tiền: ${(item.quantity * item.price).formatPrice()}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

@@ -2,18 +2,16 @@ package com.vohuy.mixueapp.ui.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
+import com.google.firebase.firestore.ListenerRegistration
 import com.vohuy.mixueapp.base.BaseViewModel
 import com.vohuy.mixueapp.data.model.Product
 import com.vohuy.mixueapp.data.repository.ProductRepository
 import com.vohuy.mixueapp.utils.Result
 
-/**
- * HomeViewModel - Xử lý logic cho Home Screen
- */
 class HomeViewModel : BaseViewModel() {
 
     private val repository = ProductRepository()
+    private var productsListener: ListenerRegistration? = null
 
     private val _products = MutableLiveData<List<Product>>()
     val products: LiveData<List<Product>> = _products
@@ -24,24 +22,25 @@ class HomeViewModel : BaseViewModel() {
 
     fun loadAllProducts() {
         setLoading(true)
-        val liveData = repository.getAllProducts()
-        val observer = object : Observer<Result<List<Product>>> {
-            override fun onChanged(value: Result<List<Product>>) {
-                when (value) {
-                    is Result.Success -> {
-                        _products.value = value.data
-                        setLoading(false)
-                        liveData.removeObserver(this)
-                    }
-                    is Result.Error -> {
-                        setError(value.exception.message ?: "Không thể tải sản phẩm")
-                        liveData.removeObserver(this)
-                    }
-                    is Result.Loading -> setLoading(true)
+        productsListener?.remove()
+
+        // Gọi đúng hàm lắng nghe Real-time từ Repository mới
+        productsListener = repository.listenAllProducts { result ->
+            when (result) {
+                is Result.Success -> {
+                    _products.value = result.data
+                    setLoading(false)
                 }
+                is Result.Error -> {
+                    setError(result.exception.message ?: "Không thể tải danh sách sản phẩm")
+                }
+                is Result.Loading -> setLoading(true)
             }
         }
-        liveData.observeForever(observer)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        productsListener?.remove()
     }
 }
-

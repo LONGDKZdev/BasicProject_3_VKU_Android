@@ -31,19 +31,19 @@ export async function login(email, password) {
 /**
  * Register new admin account
  */
-export async function register(email, password) {
+export async function register(email, password, fullName) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   const uid = cred.user.uid;
 
-  // Create user document with ADMIN role
+  // Create user document with ADMIN role and Full Name
   await setDoc(doc(db, COLLECTIONS.users, uid), {
     id: uid,
     email: email,
+    fullName: fullName,
     role: "ADMIN",
     createdAt: new Date(),
   });
 
-  // Save to localStorage for auto-login
   saveLoginState(email, true);
   return cred.user;
 }

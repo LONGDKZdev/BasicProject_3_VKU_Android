@@ -45,44 +45,18 @@ export const authService = {
     };
   },
 
-  // Register a user
-  // School-project mode: anyone registering via web-admin becomes an ADMIN.
-  // Previously required email verification AND Firestore role check for access.
-  // Requirement change: do NOT force email verification.
-  async register(email, password) {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
-    const u = credential.user;
-
-    // ✅ Requirement change: do not force email verification.
-    // Keep old behavior for later/reference.
-    // await sendEmailVerification(u); // Gửi mail xác nhận ngay lập tức
-
-    // Create user profile doc (role ADMIN by default)
-    await setDoc(
-      doc(db, COLLECTIONS.users, u.uid),
-      {
-        email: u.email,
-        role: ROLES.admin,
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    return { uid: u.uid, email: u.email ?? email };
-  },
-
   async logout() {
     await signOut(auth);
   },
 
-  async sendVerificationEmail() {
-    const u = auth.currentUser;
-    if (!u) throw new Error("Chưa đăng nhập");
-    // ✅ Requirement change: do not force email verification.
-    // Keep old behavior for later/reference.
-    // await sendEmailVerification(u);
-    throw new Error("Đã tắt tính năng xác thực email (email verification). ");
-  },
+//  async sendVerificationEmail() {
+//    const u = auth.currentUser;
+//    if (!u) throw new Error("Chưa đăng nhập");
+//    // ✅ Requirement change: do not force email verification.
+//    // Keep old behavior for later/reference.
+//    // await sendEmailVerification(u);
+//    throw new Error("Đã tắt tính năng xác thực email (email verification). ");
+//  },
 
   async getUserRole(uid) {
     if (!uid) return ROLES.user;

@@ -8,10 +8,9 @@ data class OrderItem(
     val productId: String = "",
     val productName: String = "",
     var quantity: Int = 1,
-    val price: Long = 0L,
-    val pricePerUnit: Double = 0.0,
+    val price: Double = 0.0,
     val imageUrl: String = ""
 ) {
-    fun getTotalPrice(): Double = quantity * pricePerUnit
+    fun getTotalPrice(): Double = quantity * price
 }
 

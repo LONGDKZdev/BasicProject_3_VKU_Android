@@ -12,13 +12,7 @@ import {
   updateDoc,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
-import { auth, db, storage, COLLECTIONS } from "./firebase.js";
+import { auth, db, COLLECTIONS } from "./firebase.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -44,7 +38,9 @@ export async function runHealthcheck(logger) {
 
   log("[Firestore] read back...");
   const snap1 = await getDoc(doc(db, COLLECTIONS.healthcheck, docRef.id));
-  if (!snap1.exists()) throw new Error("Firestore read-back failed: doc missing");
+  if (!snap1.exists()) {
+    throw new Error("Firestore read-back failed: doc missing");
+  }
   log(`[Firestore] read OK (status=${snap1.data().status})`);
 
   log("[Firestore] update...");
@@ -67,30 +63,8 @@ export async function runHealthcheck(logger) {
   await deleteDoc(doc(db, COLLECTIONS.healthcheck, docRef.id));
   log("[Firestore] delete OK");
 
-  // ----- Storage -----
-  log("[Storage] upload... (healthcheck/{uid}/web_admin_test.txt)");
-  const content = `Mixue healthcheck OK\nuid=${user.uid}\ntime=${nowIso()}\n`;
-  const bytes = new TextEncoder().encode(content);
-  const fileRef = ref(storage, `healthcheck/${user.uid}/web_admin_test.txt`);
-  await uploadBytes(fileRef, bytes, { contentType: "text/plain" });
-  log("[Storage] upload OK");
-
-  log("[Storage] getDownloadURL...");
-  const url = await getDownloadURL(fileRef);
-  log(`[Storage] url OK: ${url.substring(0, 60)}...`);
-
-  log("[Storage] fetch content (optional verify)...");
-  const fetched = await fetch(url);
-  if (!fetched.ok) throw new Error(`Storage fetch failed: HTTP ${fetched.status}`);
-  const text = await fetched.text();
-  if (!text.includes("Mixue healthcheck OK")) {
-    throw new Error("Storage fetch verify failed: unexpected content");
-  }
-  log("[Storage] fetch verify OK");
-
-  log("[Storage] delete object...");
-  await deleteObject(fileRef);
-  log("[Storage] delete OK");
+  log("[Storage] skipped: Firebase Storage is not used in this project");
+  log("[Storage] images are uploaded through Supabase Storage only");
 
   log("== HEALTHCHECK PASS ==");
 }
@@ -138,9 +112,8 @@ export async function seedProducts(logger) {
   ];
 
   log("[Seed] upsert 3 products into Firestore collection 'products'...");
-  for (const p of products) {
-    await setDoc(doc(db, COLLECTIONS.products, p.id), p, { merge: true });
+  for (const product of products) {
+    await setDoc(doc(db, COLLECTIONS.products, product.id), product, { merge: true });
   }
   log("[Seed] DONE");
 }
-

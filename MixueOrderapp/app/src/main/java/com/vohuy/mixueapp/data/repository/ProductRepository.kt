@@ -1,7 +1,6 @@
 package com.vohuy.mixueapp.data.repository
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.google.firebase.firestore.ListenerRegistration
 import com.vohuy.mixueapp.base.BaseRepository
 import com.vohuy.mixueapp.data.model.Product
 import com.vohuy.mixueapp.utils.Constants
@@ -9,101 +8,115 @@ import com.vohuy.mixueapp.utils.ErrorHandler
 import com.vohuy.mixueapp.utils.Result
 
 /**
- * ProductRepository - Xử lý tất cả logic sản phẩm từ Firebase
- * DRY Principle: Tất cả Firestore Product operations ở đây
+ * ProductRepository - Xử lý logic sản phẩm từ Firestore.
+ *
+ * Danh sách sản phẩm dùng Snapshot Listener để cập nhật thời gian thực.
+ * Ảnh sản phẩm chỉ lưu URL trong field imageUrl.
  */
 class ProductRepository : BaseRepository() {
 
     /**
-     * Lấy tất cả sản phẩm
+     * Lắng nghe tất cả sản phẩm theo thời gian thực.
      */
-    fun getAllProducts(): LiveData<Result<List<Product>>> {
-        val result = MutableLiveData<Result<List<Product>>>()
-        result.value = Result.Loading()
+    fun listenAllProducts(
+        onResult: (Result<List<Product>>) -> Unit
+    ): ListenerRegistration {
+        onResult(Result.Loading())
 
-        firestore.collection(Constants.COLLECTION_PRODUCTS)
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val products = snapshot.toObjects(Product::class.java)
-                result.value = Result.Success(products)
-            }
-            .addOnFailureListener { exception ->
-                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
-                result.value = Result.Error(Exception(errorMessage))
-            }
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    onResult(Result.Error(Exception(errorMessage)))
+                    return@addSnapshotListener
+                }
 
-        return result
+                val products = snapshot
+                    ?.toObjects(Product::class.java)
+                    .orEmpty()
+                    .sortedBy { it.name }
+
+                onResult(Result.Success(products))
+            }
     }
 
     /**
-     * Lấy sản phẩm theo danh mục
+     * Lắng nghe sản phẩm theo danh mục theo thời gian thực.
      */
-    fun getProductsByCategory(category: String): LiveData<Result<List<Product>>> {
-        val result = MutableLiveData<Result<List<Product>>>()
-        result.value = Result.Loading()
+    fun listenProductsByCategory(
+        category: String,
+        onResult: (Result<List<Product>>) -> Unit
+    ): ListenerRegistration {
+        onResult(Result.Loading())
 
-        firestore.collection(Constants.COLLECTION_PRODUCTS)
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
             .whereEqualTo(Constants.FIELD_PRODUCT_CATEGORY, category)
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val products = snapshot.toObjects(Product::class.java)
-                result.value = Result.Success(products)
-            }
-            .addOnFailureListener { exception ->
-                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
-                result.value = Result.Error(Exception(errorMessage))
-            }
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    onResult(Result.Error(Exception(errorMessage)))
+                    return@addSnapshotListener
+                }
 
-        return result
+                val products = snapshot
+                    ?.toObjects(Product::class.java)
+                    .orEmpty()
+                    .sortedBy { it.name }
+
+                onResult(Result.Success(products))
+            }
     }
 
     /**
-     * Lấy sản phẩm theo ID
+     * Lắng nghe sản phẩm khả dụng theo thời gian thực.
      */
-    fun getProductById(productId: String): LiveData<Result<Product>> {
-        val result = MutableLiveData<Result<Product>>()
-        result.value = Result.Loading()
+    fun listenAvailableProducts(
+        onResult: (Result<List<Product>>) -> Unit
+    ): ListenerRegistration {
+        onResult(Result.Loading())
 
-        firestore.collection(Constants.COLLECTION_PRODUCTS)
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
+            .whereEqualTo(Constants.FIELD_PRODUCT_AVAILABLE, true)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    onResult(Result.Error(Exception(errorMessage)))
+                    return@addSnapshotListener
+                }
+
+                val products = snapshot
+                    ?.toObjects(Product::class.java)
+                    .orEmpty()
+                    .sortedBy { it.name }
+
+                onResult(Result.Success(products))
+            }
+    }
+
+    /**
+     * Lắng nghe chi tiết một sản phẩm theo thời gian thực.
+     */
+    fun listenProductById(
+        productId: String,
+        onResult: (Result<Product>) -> Unit
+    ): ListenerRegistration {
+        onResult(Result.Loading())
+
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
             .document(productId)
-            .get()
-            .addOnSuccessListener { document ->
-                val product = document.toObject(Product::class.java)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    val errorMessage = ErrorHandler.getErrorMessage(error)
+                    onResult(Result.Error(Exception(errorMessage)))
+                    return@addSnapshotListener
+                }
+
+                val product = snapshot?.toObject(Product::class.java)
                 if (product != null) {
-                    result.value = Result.Success(product)
+                    onResult(Result.Success(product))
                 } else {
-                    result.value = Result.Error(Exception("Không tìm thấy sản phẩm"))
+                    onResult(Result.Error(Exception("Không tìm thấy sản phẩm")))
                 }
             }
-            .addOnFailureListener { exception ->
-                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
-                result.value = Result.Error(Exception(errorMessage))
-            }
-
-        return result
-    }
-
-    /**
-     * Lấy sản phẩm khả dụng
-     */
-    fun getAvailableProducts(): LiveData<Result<List<Product>>> {
-        val result = MutableLiveData<Result<List<Product>>>()
-        result.value = Result.Loading()
-
-        firestore.collection(Constants.COLLECTION_PRODUCTS)
-            .whereEqualTo(Constants.FIELD_PRODUCT_AVAILABLE, true)
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val products = snapshot.toObjects(Product::class.java)
-                result.value = Result.Success(products)
-            }
-            .addOnFailureListener { exception ->
-                val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
-                result.value = Result.Error(Exception(errorMessage))
-            }
-
-
-        return result
     }
 }
-
