@@ -43,6 +43,8 @@ class OrderViewModel : BaseViewModel() {
         userId: String,
         items: List<OrderItem>,
         customerName: String = "",
+        phoneNumber: String = "",
+        address: String = "",
         paymentMethod: String = Constants.PAYMENT_METHOD_CASH
     ) {
         if (items.isEmpty()) {
@@ -63,6 +65,8 @@ class OrderViewModel : BaseViewModel() {
         val order = Order(
             userId = userId,
             customerName = customerName,
+            phoneNumber = phoneNumber,
+            address = address,
             items = items,
             status = Constants.ORDER_STATUS_PENDING,
             totalPrice = calculatedTotal

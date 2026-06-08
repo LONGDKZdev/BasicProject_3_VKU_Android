@@ -1,12 +1,13 @@
 package com.vohuy.mixueapp.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -16,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -46,6 +49,14 @@ fun CartScreen(
     val orderSuccess by orderVm.successMessage.observeAsState()
     val orderError by orderVm.errorMessage.observeAsState()
 
+    // Khởi tạo context để dùng cho Toast
+    val context = LocalContext.current
+
+    // Các biến cho form giao hàng
+    var showCheckoutDialog by remember { mutableStateOf(false) }
+    var phoneInput by remember { mutableStateOf(currentUser?.phoneNumber ?: "") }
+    var addressInput by remember { mutableStateOf("") }
+
     // Ensure current user is fetched (covers cold start)
     LaunchedEffect(Unit) {
         authVm.fetchCurrentUser()
@@ -67,7 +78,7 @@ fun CartScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -108,11 +119,12 @@ fun CartScreen(
                         Button(
                             onClick = {
                                 val uid = currentUser?.id
-                                val customerName = currentUser?.fullName ?: ""
                                 if (uid.isNullOrBlank()) {
                                     orderVm.setError("Bạn cần đăng nhập để thanh toán")
                                 } else {
-                                    orderVm.createOrder(uid, cartItems, customerName)
+                                    // Cập nhật SĐT mặc định trước khi bật Dialog
+                                    phoneInput = currentUser?.phoneNumber ?: ""
+                                    showCheckoutDialog = true
                                 }
                             },
                             modifier = Modifier
@@ -188,6 +200,62 @@ fun CartScreen(
             }
         }
     }
+
+    // ĐÃ CHUYỂN HỘP THOẠI VÀO ĐÚNG VỊ TRÍ (BÊN TRONG HÀM CartScreen)
+    if (showCheckoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showCheckoutDialog = false },
+            title = { Text("Thông tin giao hàng", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = phoneInput,
+                        onValueChange = { phoneInput = it },
+                        label = { Text("Số điện thoại liên hệ") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = addressInput,
+                        onValueChange = { addressInput = it },
+                        label = { Text("Địa chỉ nhận hàng cụ thể") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val uid = currentUser?.id ?: return@Button
+                        if (phoneInput.isBlank() || addressInput.isBlank()) {
+                            Toast.makeText(context, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        showCheckoutDialog = false
+
+                        // Chốt đơn với SĐT và Địa chỉ
+                        orderVm.createOrder(
+                            userId = uid,
+                            items = cartItems,
+                            customerName = currentUser?.fullName ?: "Khách hàng",
+                            phoneNumber = phoneInput.trim(),
+                            address = addressInput.trim()
+                        )
+                    }
+                ) {
+                    Text("Xác nhận Đặt hàng")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCheckoutDialog = false }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -248,5 +316,3 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
         }
     }
 }
-
-

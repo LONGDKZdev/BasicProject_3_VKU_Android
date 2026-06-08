@@ -10,6 +10,8 @@ data class Order(
     val id: String = "",
     val userId: String = "",
     val customerName: String = "", // 🆕 Tên khách hàng để hiển thị trên web admin
+    val phoneNumber: String = "",
+    val address: String = "",
     val items: List<OrderItem> = emptyList(),
     val status: String = "PENDING",
     val totalPrice: Double = 0.0,
