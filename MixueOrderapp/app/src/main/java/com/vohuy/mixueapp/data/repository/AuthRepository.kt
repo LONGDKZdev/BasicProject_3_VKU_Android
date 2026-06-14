@@ -141,5 +141,25 @@ class AuthRepository : BaseRepository() {
                 callback(null)
             }
     }
+
+    fun changePassword(oldPass: String, newPass: String): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        result.value = Result.Loading()
+        val user = auth.currentUser
+        if (user != null && user.email != null) {
+            val credential =
+                com.google.firebase.auth.EmailAuthProvider.getCredential(user.email!!, oldPass)
+            user.reauthenticate(credential).addOnSuccessListener {
+                user.updatePassword(newPass).addOnSuccessListener {
+                    result.value = Result.Success(Unit)
+                }.addOnFailureListener { e -> result.value = Result.Error(e) }
+            }.addOnFailureListener { e ->
+                result.value = Result.Error(Exception("Mật khẩu hiện tại không đúng"))
+            }
+        } else {
+            result.value = Result.Error(Exception("Chưa đăng nhập"))
+        }
+        return result
+    }
 }
 

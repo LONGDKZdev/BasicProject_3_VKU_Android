@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <link href="./assets/Img/LogoEmployee_SaleUI.png" rel="icon" type="image/png">
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>POS Tại Quầy - Mixue Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: system-ui, -apple-system, sans-serif; }
+        .product-card { cursor: pointer; transition: transform 0.2s; border: none; border-radius: 12px; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .cart-container { height: calc(100vh - 80px); display: flex; flex-direction: column; border-radius: 12px; border: none;}
+        .cart-items { flex-grow: 1; overflow-y: auto; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-danger shadow-sm">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand mb-0 h1 fw-bold"><i class='bx bx-store-alt'></i> Mixue Bán Hàng Tại Quầy</span>
+        <a class="btn btn-light btn-sm fw-bold" href="index.html"><i class='bx bx-arrow-back'></i>
+            Quay lại Admin</a>
+    </div>
+</nav>
+
+<div class="container-fluid p-3">
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0"
+                 style="border-radius: 12px; min-height: calc(100vh - 80px);">
+                <div class="card-body">
+                    <div class="input-group mb-4 shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class='bx bx-search text-muted'></i></span>
+                        <input class="form-control border-start-0 ps-0" id="posSearch"
+                               placeholder="Tìm kiếm món ăn nhanh..."
+                               type="text">
+                    </div>
+
+                    <div class="d-flex gap-2 overflow-auto mb-4 pb-2" id="posCategoryPills"
+                         style="white-space: nowrap;">
+                        <button class="btn btn-danger rounded-pill px-4" data-cat="all">Tất cả
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill px-4"
+                                data-cat="Trà sữa">Trà sữa
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill px-4"
+                                data-cat="Trà trái cây">Trà trái cây
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill px-4" data-cat="Kem">
+                            Kem
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill px-4"
+                                data-cat="Cà phê">Cà phê
+                        </button>
+                    </div>
+                    <div class="row g-3" id="posProductGrid">
+                        <div class="text-center text-muted mt-5"><span
+                                class="spinner-border spinner-border-sm"></span> Đang tải dữ liệu...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm cart-container">
+                <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="mb-0 fw-bold"><i class='bx bx-basket text-danger'></i> Đơn Hàng Lấy
+                        Ngay</h5>
+                </div>
+                <div class="card-body cart-items p-3" id="posCartList">
+                    <div class="text-center text-muted mt-5">Giỏ hàng trống</div>
+                </div>
+
+                <div class="card-footer bg-white border-top-0 p-3 shadow-lg"
+                     style="border-radius: 0 0 12px 12px;">
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span class="fw-bold fs-5 text-secondary">Tổng thanh toán:</span>
+                        <span class="fw-bold text-danger fs-4" id="posTotal">0 ₫</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary mb-1">Tên khách hàng
+                            (Tùy chọn)</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light"><i
+                                    class='bx bx-user'></i></span>
+                            <input class="form-control" id="posCustomerName"
+                                   placeholder="Khách vãng lai"
+                                   type="text">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm"
+                            disabled id="posCheckoutBtn">
+                        <i class='bx bx-dollar-circle'></i> Thu Tiền Mặt (Hoàn Thành)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="./src/pos-logic.js" type="module"></script>
+</body>
+</html>

@@ -8,6 +8,7 @@ data class User(
     val email: String = "",
     val fullName: String = "",
     val phoneNumber: String = "",
+    val address: String = "",
     val role: String = "USER", // "USER" hoặc "ADMIN"
     val createdAt: Long = System.currentTimeMillis()
 )

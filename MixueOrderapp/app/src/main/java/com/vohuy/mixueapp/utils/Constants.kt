@@ -74,13 +74,11 @@ object Constants {
 
     // ========== PAYMENT METHOD ==========
     const val PAYMENT_METHOD_CASH = "CASH"
-    const val PAYMENT_METHOD_CARD = "CARD"
-    const val PAYMENT_METHOD_WALLET = "WALLET"
+    const val PAYMENT_METHOD_BANK_TRANSFER = "BANK_TRANSFER"
 
     val VALID_PAYMENT_METHODS = setOf(
         PAYMENT_METHOD_CASH,
-        PAYMENT_METHOD_CARD,
-        PAYMENT_METHOD_WALLET
+        PAYMENT_METHOD_BANK_TRANSFER
     )
 
     // ========== TRANSACTION STATUS ==========

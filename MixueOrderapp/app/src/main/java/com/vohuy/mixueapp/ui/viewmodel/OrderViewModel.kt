@@ -45,8 +45,16 @@ class OrderViewModel : BaseViewModel() {
         customerName: String = "",
         phoneNumber: String = "",
         address: String = "",
-        paymentMethod: String = Constants.PAYMENT_METHOD_CASH
+        paymentMethod: String = Constants.PAYMENT_METHOD_BANK_TRANSFER
     ) {
+        // 1. KIỂM TRA CHỐNG SPAM (Dùng luôn danh sách đã tải trong ViewModel)
+        val currentOrders = orders.value ?: emptyList()
+        val pendingCount = currentOrders.count { it.status == Constants.ORDER_STATUS_PENDING }
+
+        if (pendingCount >= 3) {
+            setError("⛔ Bạn đang có quá 3 đơn hàng chờ duyệt. Vui lòng đợi quán xử lý trước!")
+            return // Chặn luôn không cho chạy tiếp
+        }
         if (items.isEmpty()) {
             setError("Giỏ hàng trống")
             return
@@ -67,6 +75,7 @@ class OrderViewModel : BaseViewModel() {
             customerName = customerName,
             phoneNumber = phoneNumber,
             address = address,
+            paymentMethod = normalizedPaymentMethod,
             items = items,
             status = Constants.ORDER_STATUS_PENDING,
             totalPrice = calculatedTotal
@@ -218,6 +227,7 @@ class OrderViewModel : BaseViewModel() {
             Constants.ORDER_STATUS_CANCELLED -> Constants.TRANSACTION_STATUS_FAILED
             Constants.ORDER_STATUS_CONFIRMED,
             Constants.ORDER_STATUS_DELIVERING -> Constants.TRANSACTION_STATUS_SUCCESS
+
             else -> Constants.TRANSACTION_STATUS_PENDING
         }
 
@@ -237,7 +247,23 @@ class OrderViewModel : BaseViewModel() {
      * Hủy đơn hàng.
      */
     fun cancelOrder(orderId: String) {
-        updateOrderStatus(orderId, Constants.ORDER_STATUS_CANCELLED)
+        setLoading(true)
+        repository.updateOrderStatus(orderId, Constants.ORDER_STATUS_CANCELLED)
+            .observeForever { result ->
+                when (result) {
+                    is Result.Success -> {
+                        setSuccess("Đã hủy đơn và hoàn tiền thành công!")
+                    }
+
+                    is Result.Error -> {
+                        setError(result.exception.message ?: "Không thể hủy đơn hàng")
+                    }
+
+                    is Result.Loading -> {
+                        setLoading(true)
+                    }
+                }
+            }
     }
 
     fun resetOrderState() {

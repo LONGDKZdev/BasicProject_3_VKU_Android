@@ -1,5 +1,6 @@
 package com.vohuy.mixueapp.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -8,31 +9,40 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-
-// Map màu thương hiệu vào hệ thống Material 3
-private val LightColorScheme = lightColorScheme(
-    primary = MixueRed, // Đỏ Mixue làm màu chủ đạo (TopBar, Nút bấm, Text nổi bật)
-    onPrimary = Color.White, // Chữ trên nền đỏ sẽ màu trắng
-    secondary = MixueGreen,
-    tertiary = MixueOrange,
-    background = Color(0xFFF8F9FA), // Màu nền xám nhạt cho App giống ShopeeFood
-    surface = Color.White, // Màu nền của các Card (Thẻ)
-)
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = MixueRed,
-    secondary = MixueGreen,
-    tertiary = MixueOrange,
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
+    secondary = MixueRedDark,
+    background = BackgroundDark,
+    surface = SurfaceDark,
+    surfaceVariant = SurfaceVariantDark,
+    onPrimary = Color.White,
+    onBackground = TextDark,
+    onSurface = TextDark,
+    onSurfaceVariant = Color.LightGray,
+    error = Color(0xFFCF6679)
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = MixueRed,
+    secondary = MixueRedDark,
+    background = BackgroundLight,
+    surface = SurfaceLight,
+    onPrimary = Color.White,
+    onBackground = TextLight,
+    onSurface = TextLight
 )
 
 @Composable
-fun MixueOrderAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // TẮT dynamic color để ép máy dùng màu Mixue thay vì màu hình nền điện thoại
+fun MixueAppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(), // TỰ ĐỘNG BẮT THEO GIAO DIỆN CỦA ĐIỆN THOẠI
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -40,8 +50,19 @@ fun MixueOrderAppTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    // Đổi màu thanh Trạng thái (Status Bar - Cục pin/Giờ)
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
     }
 
     MaterialTheme(

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <link href="./assets/Img/LogoEmployee_SaleUI.png" rel="icon" type="image/png">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Hóa Đơn - Mixue</title>
     <style>
         * {
@@ -169,181 +170,203 @@
     </style>
 </head>
 <body>
-    <div class="invoice-container">
-        <div id="loading" class="loading">Đang tải hóa đơn...</div>
-        <div id="invoice" style="display: none;">
-            <!-- Header -->
-            <div class="invoice-header">
-                <div class="logo">🍦 MIXUE</div>
-                <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
+<div class="invoice-container">
+    <div class="loading" id="loading">Đang tải hóa đơn...</div>
+    <div id="invoice" style="display: none;">
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="logo">🍦 MIXUE</div>
+            <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
+        </div>
+
+        <!-- Order Info -->
+        <div class="invoice-meta">
+            <div class="meta-item">
+                <div class="meta-label">Mã Đơn Hàng</div>
+                <div class="meta-value" id="orderId">-</div>
             </div>
-
-            <!-- Order Info -->
-            <div class="invoice-meta">
-                <div class="meta-item">
-                    <div class="meta-label">Mã Đơn Hàng</div>
-                    <div class="meta-value" id="orderId">-</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Ngày Đặt</div>
-                    <div class="meta-value" id="orderDate">-</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Khách Hàng</div>
-                    <div class="meta-value" id="customerName">-</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Trạng Thái</div>
-                    <div class="meta-value" id="orderStatus">-</div>
-                </div>
+            <div class="meta-item">
+                <div class="meta-label">Ngày Đặt</div>
+                <div class="meta-value" id="orderDate">-</div>
             </div>
-
-            <!-- Items Table -->
-            <table>
-                <thead>
-                    <tr>
-                        <th>Sản Phẩm</th>
-                        <th class="text-right">Số Lượng</th>
-                        <th class="text-right">Giá Đơn Vị</th>
-                        <th class="text-right">Thành Tiền</th>
-                    </tr>
-                </thead>
-                <tbody id="itemsTable">
-                    <!-- Items will be inserted here -->
-                </tbody>
-            </table>
-
-            <!-- Summary -->
-            <div class="summary">
-                <div class="summary-row">
-                    <span>Tổng Tiền Hàng:</span>
-                    <span id="subtotal">0 ₫</span>
-                </div>
-                <div class="summary-row">
-                    <span>Phí Giao Hàng:</span>
-                    <span id="shipping">0 ₫</span>
-                </div>
-                <div class="summary-row">
-                    <span>Giảm Giá:</span>
-                    <span id="discount">0 ₫</span>
-                </div>
-                <div class="summary-row total">
-                    <span>Tổng Thanh Toán:</span>
-                    <span id="total">0 ₫</span>
-                </div>
+            <div class="meta-item">
+                <div class="meta-label">Khách Hàng</div>
+                <div class="meta-value" id="customerName">-</div>
             </div>
-
-            <!-- Note -->
-            <div class="note">
-                <strong>Ghi Chú:</strong><br>
-                Cảm ơn bạn đã sử dụng dịch vụ Mixue! <br>
-                Hóa đơn này được in từ hệ thống quản lý đơn hàng Mixue. Vui lòng lưu hóa đơn để tiện theo dõi.
+            <div class="meta-item">
+                <div class="meta-label">Trạng Thái</div>
+                <div class="meta-value" id="orderStatus">-</div>
             </div>
-
-            <!-- Footer -->
-            <div class="footer">
-                <p>Mixue Order System © 2026 | Hóa Đơn In Ngày: <span id="printDate"></span></p>
+            <div class="meta-item">
+                <div class="meta-label">Thanh Toán</div>
+                <div class="meta-value" id="paymentMethod">-</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Thông Tin Giao Hàng</div>
+                <div class="meta-value" id="deliveryInfo">Khách tự lấy</div>
             </div>
         </div>
+
+        <!-- Items Table -->
+        <table>
+            <thead>
+            <tr>
+                <th>Sản Phẩm</th>
+                <th class="text-right">Số Lượng</th>
+                <th class="text-right">Giá Đơn Vị</th>
+                <th class="text-right">Thành Tiền</th>
+            </tr>
+            </thead>
+            <tbody id="itemsTable">
+            <!-- Items will be inserted here -->
+            </tbody>
+        </table>
+
+        <!-- Summary -->
+        <div class="summary">
+            <div class="summary-row">
+                <span>Tổng Tiền Hàng:</span>
+                <span id="subtotal">0 ₫</span>
+            </div>
+            <div class="summary-row">
+                <span>Phí Giao Hàng:</span>
+                <span id="shipping">0 ₫</span>
+            </div>
+            <div class="summary-row">
+                <span>Giảm Giá:</span>
+                <span id="discount">0 ₫</span>
+            </div>
+            <div class="summary-row total">
+                <span>Tổng Thanh Toán:</span>
+                <span id="total">0 ₫</span>
+            </div>
+        </div>
+
+        <!-- Note -->
+        <div class="note">
+            <strong>Ghi Chú:</strong><br>
+            Cảm ơn bạn đã sử dụng dịch vụ Mixue! <br>
+            Hóa đơn này được in từ hệ thống quản lý đơn hàng Mixue. Vui lòng lưu hóa đơn để tiện
+            theo dõi.
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Mixue Order System © 2026 | Hóa Đơn In Ngày: <span id="printDate"></span></p>
+        </div>
     </div>
+</div>
 
-    <script type="module">
-        import { db, COLLECTIONS } from "./src/firebase.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+<script type="module">
+    import { db, COLLECTIONS } from "./src/firebase.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-        const params = new URLSearchParams(window.location.search);
-        const orderId = params.get("orderId");
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("orderId");
 
-        async function loadInvoice() {
-            if (!orderId) {
-                document.getElementById("loading").textContent = "Không tìm thấy mã đơn hàng";
+    async function loadInvoice() {
+        if (!orderId) {
+            document.getElementById("loading").textContent = "Không tìm thấy mã đơn hàng";
+            return;
+        }
+
+        try {
+            const orderSnap = await getDoc(doc(db, COLLECTIONS.orders, orderId));
+            if (!orderSnap.exists()) {
+                document.getElementById("loading").textContent = "Không tìm thấy đơn hàng";
                 return;
             }
 
-            try {
-                const orderSnap = await getDoc(doc(db, COLLECTIONS.orders, orderId));
-                if (!orderSnap.exists()) {
-                    document.getElementById("loading").textContent = "Không tìm thấy đơn hàng";
-                    return;
-                }
+            const order = orderSnap.data();
+            renderInvoice(orderId, order);
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("invoice").style.display = "block";
 
-                const order = orderSnap.data();
-                renderInvoice(orderId, order);
-                document.getElementById("loading").style.display = "none";
-                document.getElementById("invoice").style.display = "block";
+            // Auto print after load
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        } catch (error) {
+            console.error("Error loading invoice:", error);
+            document.getElementById("loading").textContent = "Lỗi: " + error.message;
+        }
+    }
 
-                // Auto print after load
-                setTimeout(() => {
-                    window.print();
-                }, 500);
-            } catch (error) {
-                console.error("Error loading invoice:", error);
-                document.getElementById("loading").textContent = "Lỗi: " + error.message;
-            }
+    function renderInvoice(id, order) {
+        document.getElementById("orderId").textContent = id;
+        document.getElementById("customerName").textContent = order.customerName || order.userId || "-";
+        document.getElementById("orderStatus").textContent = getStatusText(order.status);
+
+        // 🆕 Cấy logic hiển thị Phương thức thanh toán
+        let paymentText = "Chưa xác định";
+        if (order.paymentMethod === 'BANK_TRANSFER') paymentText = "💳 Chuyển khoản (Đã thu)";
+        if (order.paymentMethod === 'CASH') paymentText = "💵 Tiền mặt (Thu tại quầy)";
+        document.getElementById("paymentMethod").textContent = paymentText;
+
+        const phone = order.phoneNumber ? `SĐT: ${order.phoneNumber}` : "";
+        const address = order.address ? `Địa chỉ: ${order.address}` : "";
+        const deliveryInfo = [phone, address].filter(Boolean).join(" - ");
+        if (deliveryInfo) {
+            document.getElementById("deliveryInfo").textContent = deliveryInfo;
         }
 
-        function renderInvoice(id, order) {
-            document.getElementById("orderId").textContent = id;
-            document.getElementById("customerName").textContent = order.customerName || order.userId || "-";
-            document.getElementById("orderStatus").textContent = getStatusText(order.status);
+        const createdAt = order.createdAt?.toDate?.() || new Date(order.createdAt);
+        document.getElementById("orderDate").textContent = new Date(createdAt).toLocaleString("vi-VN");
+        document.getElementById("printDate").textContent = new Date().toLocaleString("vi-VN");
 
-            const createdAt = order.createdAt?.toDate?.() || new Date(order.createdAt);
-            document.getElementById("orderDate").textContent = new Date(createdAt).toLocaleString("vi-VN");
-            document.getElementById("printDate").textContent = new Date().toLocaleString("vi-VN");
+        // Render items
+        const itemsTable = document.getElementById("itemsTable");
+        itemsTable.innerHTML = "";
+        let subtotal = 0;
 
-            // Render items
-            const itemsTable = document.getElementById("itemsTable");
-            itemsTable.innerHTML = "";
-            let subtotal = 0;
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach((item) => {
+                const itemTotal = (item.price || 0) * (item.quantity || 1);
+                subtotal += itemTotal;
 
-            if (order.items && Array.isArray(order.items)) {
-                order.items.forEach((item) => {
-                    const itemTotal = (item.price || 0) * (item.quantity || 1);
-                    subtotal += itemTotal;
-
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td class="item-name">${item.name || "Sản phẩm"}</td>
-                        <td class="text-right">${item.quantity || 1}</td>
-                        <td class="text-right">${formatPrice(item.price || 0)}</td>
-                        <td class="text-right">${formatPrice(itemTotal)}</td>
-                    `;
-                    itemsTable.appendChild(row);
-                });
-            }
-
-            const shipping = order.shippingFee || 0;
-            const discount = order.discount || 0;
-            const total = order.total || (subtotal + shipping - discount);
-
-            document.getElementById("subtotal").textContent = formatPrice(subtotal);
-            document.getElementById("shipping").textContent = formatPrice(shipping);
-            document.getElementById("discount").textContent = formatPrice(discount);
-            document.getElementById("total").textContent = formatPrice(total);
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td class="item-name">${item.name || "Sản phẩm"}</td>
+                    <td class="text-right">${item.quantity || 1}</td>
+                    <td class="text-right">${formatPrice(item.price || 0)}</td>
+                    <td class="text-right">${formatPrice(itemTotal)}</td>
+                `;
+                itemsTable.appendChild(row);
+            });
         }
 
-        function formatPrice(price) {
-            return new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-                minimumFractionDigits: 0
-            }).format(price);
-        }
+        const shipping = order.shippingFee || 0;
+        const discount = order.discount || 0;
+        const total = order.total || (subtotal + shipping - discount);
+
+        document.getElementById("subtotal").textContent = formatPrice(subtotal);
+        document.getElementById("shipping").textContent = formatPrice(shipping);
+        document.getElementById("discount").textContent = formatPrice(discount);
+        document.getElementById("total").textContent = formatPrice(total);
+    }
+
+    function formatPrice(price) {
+        return new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+            minimumFractionDigits: 0
+        }).format(price);
+    }
 
 function getStatusText(status) {
-            const statuses = {
-                PENDING: "⏳ Chờ Xác Thực",
-                CONFIRMED: "✅ Đã Xác Thực",
-                PREPARING: "🔨 Đang Chuẩn Bị",
-                DELIVERING: "🚚 Đang Giao",
-                DONE: "✔️ Đã Giao",
-                CANCELLED: "✗ Đã Hủy"
-            };
-            return statuses[status] || status;
-        }
+        const statuses = {
+            PENDING: "⏳ Chờ Xác Thực",
+            CONFIRMED: "✅ Đã Xác Thực",
+            PREPARING: "🔨 Đang Chuẩn Bị",
+            DELIVERING: "🚚 Đang Giao",
+            DONE: "✔️ Đã Giao",
+            CANCELLED: "✗ Đã Hủy"
+        };
+        return statuses[status] || status;
+    }
 
-        loadInvoice();
-    </script>
+    loadInvoice();
+</script>
 </body>
 </html>
 

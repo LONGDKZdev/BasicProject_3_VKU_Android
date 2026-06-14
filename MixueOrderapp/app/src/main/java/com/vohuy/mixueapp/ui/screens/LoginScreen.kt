@@ -1,7 +1,6 @@
 package com.vohuy.mixueapp.ui.screens
 
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,6 +56,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.vohuy.mixueapp.ui.components.ToastMessageHandler
 import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 
@@ -69,6 +69,7 @@ fun LoginScreen(
     val vm: AuthViewModel = viewModel ?: viewModel()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    ToastMessageHandler(vm)
 
     // Focus Requesters
     val nameFocusRequester = remember { FocusRequester() }
@@ -77,8 +78,15 @@ fun LoginScreen(
     val confirmPasswordFocusRequester = remember { FocusRequester() }
 
     // States
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val sharedPrefs = remember {
+        context.getSharedPreferences(
+            "MixueLogin",
+            android.content.Context.MODE_PRIVATE
+        )
+    }
+
+    var email by remember { mutableStateOf(sharedPrefs.getString("saved_email", "") ?: "") }
+    var password by remember { mutableStateOf(sharedPrefs.getString("saved_password", "") ?: "") }
     var confirmPassword by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -87,8 +95,6 @@ fun LoginScreen(
     // Observers
     val isLoading by vm.isLoading.observeAsState(false)
     val currentUser by vm.currentUser.observeAsState()
-    val errorMessage by vm.errorMessage.observeAsState()
-    val successMessage by vm.successMessage.observeAsState()
     val isLoginTab by vm.isLoginTab.observeAsState(true)
 
     // Logic validation
@@ -122,17 +128,10 @@ fun LoginScreen(
         if (currentUser != null && !hasNavigated.value) {
             hasNavigated.value = true
             navController.navigate(Routes.HOME) {
-                popUpTo(0) { inclusive = true } // Thay Routes.LOGIN bằng số 0 để dọn sạch hoàn toàn cô lập màn hình cũ
+                popUpTo(0) {
+                    inclusive = true
+                } // Thay Routes.LOGIN bằng số 0 để dọn sạch hoàn toàn cô lập màn hình cũ
                 launchSingleTop = true
-            }
-        }
-    }
-
-    // FIX 3: Hiển thị lỗi qua Toast để tránh làm vỡ Layout/Crash UI thread
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            if (it.isNotBlank()) {
-                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -311,8 +310,16 @@ fun LoginScreen(
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    if (isLoginTab) vm.loginUser(email.trim(), password)
-                    else vm.registerUser(email.trim(), password, fullName.trim())
+                    if (isLoginTab) {
+                        // LƯU TÀI KHOẢN VÀO BỘ NHỚ
+                        sharedPrefs.edit()
+                            .putString("saved_email", email.trim())
+                            .putString("saved_password", password)
+                            .apply()
+                        vm.loginUser(email.trim(), password)
+                    } else {
+                        vm.registerUser(email.trim(), password, fullName.trim())
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -334,17 +341,6 @@ fun LoginScreen(
                 }
             }
 
-            // Thông báo thành công (nếu có)
-            successMessage?.let {
-                if (it.isNotBlank()) {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
         }
     }
 }

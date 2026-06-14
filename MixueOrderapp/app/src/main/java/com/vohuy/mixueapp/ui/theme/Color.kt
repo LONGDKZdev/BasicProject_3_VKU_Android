@@ -2,19 +2,16 @@ package com.vohuy.mixueapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light theme colors
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-// Dark theme colors
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
-// Mixue brand colors
 val MixueRed = Color(0xFFE63946)
-val MixueGreen = Color(0xFF06A77D)
-val MixueOrange = Color(0xFFFFA500)
-val MixueYellow = Color(0xFFFFD60A)
+val MixueRedDark = Color(0xFFB71C1C)
 
+// Bảng màu Sáng
+val BackgroundLight = Color(0xFFF8F9FA)
+val SurfaceLight = Color(0xFFFFFFFF)
+val TextLight = Color(0xFF1E1E1E)
+
+// Bảng màu Tối (Dark Mode)
+val BackgroundDark = Color(0xFF121212)
+val SurfaceDark = Color(0xFF1E1E1E)
+val SurfaceVariantDark = Color(0xFF2C2C2C)
+val TextDark = Color(0xFFE0E0E0)

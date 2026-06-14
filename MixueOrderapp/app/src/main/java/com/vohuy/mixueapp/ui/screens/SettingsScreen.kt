@@ -1,19 +1,49 @@
 package com.vohuy.mixueapp.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -22,16 +52,22 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController,
-    onDarkModeToggle: (Boolean) -> Unit = {}
+    navController: NavController
 ) {
-    var darkModeEnabled by remember { mutableStateOf(false) }
+    LocalContext.current
+    val context = LocalContext.current
+    val authVm: com.vohuy.mixueapp.ui.viewmodel.AuthViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel()
+    com.vohuy.mixueapp.ui.components.ToastMessageHandler(authVm)
+
+    var darkModeEnabled by remember { mutableStateOf<Boolean>(com.vohuy.mixueapp.MainActivity.isAppInDarkMode.value) }
     var showChangePassword by remember { mutableStateOf(false) }
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
     var passwordSuccess by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -39,7 +75,7 @@ fun SettingsScreen(
                 title = { Text("Cài đặt", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
                     }
                 }
             )
@@ -120,7 +156,7 @@ fun SettingsScreen(
 
             if (!showChangePassword) {
                 Button(
-                    onClick = { 
+                    onClick = {
                         showChangePassword = true
                         passwordError = ""
                         passwordSuccess = false
@@ -130,7 +166,11 @@ fun SettingsScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Đổi Mật Khẩu", fontWeight = FontWeight.SemiBold)
                 }
@@ -165,23 +205,22 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
-                        if (passwordSuccess) {
-                            Text(
-                                text = "✅ Đổi mật khẩu thành công!",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
                         OutlinedTextField(
                             value = oldPassword,
                             onValueChange = { oldPassword = it },
                             label = { Text("Mật khẩu hiện tại") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            visualTransformation = PasswordVisualTransformation()
+                            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -190,9 +229,17 @@ fun SettingsScreen(
                             onValueChange = { newPassword = it },
                             label = { Text("Mật khẩu mới") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            visualTransformation = PasswordVisualTransformation()
+                            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -201,9 +248,17 @@ fun SettingsScreen(
                             onValueChange = { confirmPassword = it },
                             label = { Text("Xác nhận mật khẩu mới") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            visualTransformation = PasswordVisualTransformation()
+                            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -220,7 +275,6 @@ fun SettingsScreen(
                                     newPassword = ""
                                     confirmPassword = ""
                                     passwordError = ""
-                                    passwordSuccess = false
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -233,32 +287,36 @@ fun SettingsScreen(
                                 onClick = {
                                     // Validate inputs
                                     when {
-                                        oldPassword.isBlank() -> passwordError = "Nhập mật khẩu hiện tại"
+                                        oldPassword.isBlank() -> passwordError =
+                                            "Nhập mật khẩu hiện tại"
+
                                         newPassword.isBlank() -> passwordError = "Nhập mật khẩu mới"
-                                        confirmPassword.isBlank() -> passwordError = "Xác nhận mật khẩu mới"
-                                        newPassword.length < 6 -> passwordError = "Mật khẩu phải ≥ 6 ký tự"
-                                        newPassword != confirmPassword -> passwordError = "Mật khẩu không khớp"
+                                        confirmPassword.isBlank() -> passwordError =
+                                            "Xác nhận mật khẩu mới"
+
+                                        newPassword.length < 6 -> passwordError =
+                                            "Mật khẩu phải ≥ 6 ký tự"
+
+                                        newPassword != confirmPassword -> passwordError =
+                                            "Mật khẩu không khớp"
+
                                         else -> {
-                                            // TODO: Implement Firebase password change
-                                            passwordSuccess = true
+                                            // 1. Gọi lệnh Firebase đổi mật khẩu
+                                            authVm.changePassword(oldPassword, newPassword)
+
+                                            // 2. Dọn dẹp ô nhập (GIỮ NGUYÊN FORM ĐỂ XEM THÔNG BÁO TOAST)
+                                            oldPassword = ""
+                                            newPassword = ""
+                                            confirmPassword = ""
                                             passwordError = ""
-                                            // Reset after 2 seconds
-                                            Thread {
-                                                Thread.sleep(2000)
-                                                showChangePassword = false
-                                                oldPassword = ""
-                                                newPassword = ""
-                                                confirmPassword = ""
-                                                passwordSuccess = false
-                                            }.start()
                                         }
                                     }
                                 },
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
-                                shape = RoundedCornerShape(10.dp),
-                                enabled = newPassword.isNotBlank() && oldPassword.isNotBlank() && confirmPassword.isNotBlank()
+                                shape = RoundedCornerShape(10.dp)
+                                // ĐÃ XÓA HOÀN TOÀN DÒNG 'enabled = ...' LÀM LIỆT NÚT
                             ) {
                                 Text("Cập nhật")
                             }
@@ -270,7 +328,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // ==================== DISPLAY SECTION ====================
-            /*
+
             Text(
                 text = "Hiển Thị",
                 style = MaterialTheme.typography.titleMedium,
@@ -316,16 +374,24 @@ fun SettingsScreen(
                     }
                     Switch(
                         checked = darkModeEnabled,
-                        onCheckedChange = {
-                            darkModeEnabled = it
-                            onDarkModeToggle(it)
+                        onCheckedChange = { isDark ->
+                            // 1. Cập nhật UI cái nút gạt
+                            darkModeEnabled = isDark
+                            // 2. Kích hoạt đổi màu toàn App ngay lập tức
+                            com.vohuy.mixueapp.MainActivity.isAppInDarkMode.value = isDark
+                            // 3. Lưu vào bộ nhớ máy để lần sau mở App vẫn nhớ
+                            context.getSharedPreferences(
+                                "MixuePrefs",
+                                android.content.Context.MODE_PRIVATE
+                            )
+                                .edit().putBoolean("dark_mode", isDark).apply()
                         }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            */
+
             // ==================== ABOUT SECTION ====================
             Card(
                 modifier = Modifier

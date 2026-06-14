@@ -62,7 +62,7 @@ class Toast {
     const messageSpan = document.createElement('span');
     messageSpan.textContent = this.message;
 
-    this.element.appendChild(icon);
+    //this.element.appendChild(icon);
     this.element.appendChild(messageSpan);
 
     // Add close button

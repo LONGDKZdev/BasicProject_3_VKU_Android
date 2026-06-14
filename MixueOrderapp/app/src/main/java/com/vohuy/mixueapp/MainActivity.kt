@@ -4,36 +4,38 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
-import com.vohuy.mixueapp.ui.theme.MixueOrderAppTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import com.vohuy.mixueapp.ui.navigation.NavGraph
+import com.vohuy.mixueapp.ui.theme.MixueAppTheme
 import com.vohuy.mixueapp.utils.FirebaseHealthCheck
 import com.vohuy.mixueapp.utils.FirestoreSampleDataSeeder
 
-/**
- * MainActivity - Activity chính quản lý Compose navigation
- * Sử dụng Jetpack Compose với Navigation Compose
- */
 class MainActivity : ComponentActivity() {
+
+    // 1. Tạo biến toàn cục để điều khiển Giao Diện Tối từ bất kỳ đâu
+    companion object {
+        var isAppInDarkMode = mutableStateOf(false)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        // Test Firebase connections (debug only)
+
         if (BuildConfig.DEBUG) {
             FirebaseHealthCheck.runAll()
-
-            // Debug helper: verify reads only (NO automatic writes on startup).
-            // Seeding must be a manual developer/admin action, otherwise you'll see
-            // "delete -> reload -> data comes back" behavior.
             FirestoreSampleDataSeeder.verifyProductsReadable()
         }
-        
+
+        // 2. Tải cài đặt giao diện từ bộ nhớ máy (SharedPreferences)
+        val prefs = getSharedPreferences("MixuePrefs", MODE_PRIVATE)
+        isAppInDarkMode.value = prefs.getBoolean("dark_mode", false)
+
         setContent {
-            MixueOrderAppTheme {
+            // 3. Móc biến toàn cục vào Theme của App
+            MixueAppTheme(darkTheme = isAppInDarkMode.value) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NavGraph()
                 }

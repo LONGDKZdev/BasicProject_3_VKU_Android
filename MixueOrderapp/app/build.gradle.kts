@@ -77,7 +77,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    
+
     // Jetpack Compose Dependencies
     // Use a more recent Compose BOM to avoid Indication/clickable incompatibilities
     // (e.g. crash: 'clickable only supports IndicationNodeFactory... PlatformRipple').
@@ -90,17 +90,17 @@ dependencies {
     // IMPORTANT: keep activity-compose aligned with the Compose BOM to avoid runtime crashes
     // around indication/clickable (PlatformRipple vs IndicationNodeFactory).
     implementation("androidx.activity:activity-compose")
-    
+
     // Compose Navigation
     implementation("androidx.navigation:navigation-compose:2.9.7")
-    
+
     // Compose Pull-to-Refresh
     implementation("androidx.compose.material:material:1.8.1")
-    
+
     // Compose ViewModel & LiveData integration
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.1")
     implementation("androidx.compose.runtime:runtime-livedata")
-    
+
     // Coil for image loading in Compose (replaces Glide)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.androidx.credentials)
@@ -110,13 +110,13 @@ dependencies {
     // Compose debugging
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    
+
     // RecyclerView for listing items - UPDATED to 1.4.0
     implementation(libs.androidx.recyclerview)
-    
+
     // Fragment - UPDATED to latest
     implementation(libs.androidx.fragment.ktx)
-    
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -140,8 +140,11 @@ dependencies {
     // ViewModel và LiveData cho mô hình MVVM - UPDATED to 2.8.1
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-    
+
     // Coroutines - UPDATED for async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+
+    // Thư viện hiệu ứng Lottie cho Compose
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
 }

@@ -2,12 +2,12 @@ package com.vohuy.mixueapp.data.repository
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.google.firebase.firestore.ListenerRegistration
 import com.vohuy.mixueapp.base.BaseRepository
 import com.vohuy.mixueapp.data.model.Order
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.ErrorHandler
 import com.vohuy.mixueapp.utils.Result
-import com.google.firebase.firestore.ListenerRegistration
 
 /**
  * OrderRepository - Xử lý tất cả logic đơn hàng từ Firebase
@@ -99,21 +99,46 @@ class OrderRepository : BaseRepository() {
     /**
      * Cập nhật trạng thái đơn hàng
      */
+    /**
+     * Cập nhật trạng thái đơn hàng (Có kèm logic hoàn tiền nếu HỦY)
+     */
     fun updateOrderStatus(orderId: String, status: String): LiveData<Result<Unit>> {
         val result = MutableLiveData<Result<Unit>>()
         result.value = Result.Loading()
 
+        // 1. Cập nhật trạng thái Đơn hàng
         firestore.collection(Constants.COLLECTION_ORDERS)
             .document(orderId)
             .update(Constants.FIELD_ORDER_STATUS, status)
             .addOnSuccessListener {
-                result.value = Result.Success(Unit)
+
+                // 2. LOGIC HOÀN TIỀN: Nếu là Hủy Đơn, tìm và ép Giao Dịch thành FAILED
+                if (status == Constants.ORDER_STATUS_CANCELLED) {
+                    firestore.collection(Constants.COLLECTION_TRANSACTIONS)
+                        .whereEqualTo(Constants.FIELD_TRANSACTION_ORDER_ID, orderId)
+                        .get()
+                        .addOnSuccessListener { snapshot ->
+                            snapshot.documents.forEach { doc ->
+                                doc.reference.update(
+                                    Constants.FIELD_TRANSACTION_STATUS,
+                                    Constants.TRANSACTION_STATUS_FAILED
+                                )
+                            }
+                            result.value = Result.Success(Unit)
+                        }
+                        .addOnFailureListener { e ->
+                            result.value =
+                                Result.Error(Exception("Đã hủy đơn nhưng lỗi hoàn tiền: ${e.message}"))
+                        }
+                } else {
+                    result.value = Result.Success(Unit)
+                }
             }
             .addOnFailureListener { exception ->
                 val errorMessage = ErrorHandler.getErrorMessage(exception as Exception)
                 result.value = Result.Error(Exception(errorMessage))
             }
-
+ 
         return result
     }
 

@@ -34,6 +34,8 @@ class AuthViewModel : BaseViewModel() {
         clearMessages()
     }
 
+    fun getCurrentUserId(): String? = repository.getCurrentUserId()
+
     /**
      * Helper for navigation: check current FirebaseAuth state.
      */
@@ -65,11 +67,13 @@ class AuthViewModel : BaseViewModel() {
                             }, 500)
                         }
                     }
+
                     is Result.Error -> {
                         setError(value.exception.message ?: "Đăng nhập thất bại")
                         // Thất bại cũng phải hủy lắng nghe để giải phóng bộ nhớ
                         liveData.removeObserver(this)
                     }
+
                     is Result.Loading -> setLoading(true)
                 }
             }
@@ -94,10 +98,12 @@ class AuthViewModel : BaseViewModel() {
                         // Hủy lắng nghe sau khi hoàn tất đăng ký
                         liveData.removeObserver(this)
                     }
+
                     is Result.Error -> {
                         setError(value.exception.message ?: "Đăng ký thất bại")
                         liveData.removeObserver(this)
                     }
+
                     is Result.Loading -> setLoading(true)
                 }
             }
@@ -122,11 +128,13 @@ class AuthViewModel : BaseViewModel() {
                         _logoutComplete.value = true
                         liveData.removeObserver(this) // Hủy lắng nghe
                     }
+
                     is Result.Error -> {
                         setError(value.exception.message ?: "Đăng xuất thất bại")
                         _logoutComplete.value = true
                         liveData.removeObserver(this) // Hủy lắng nghe
                     }
+
                     is Result.Loading -> setLoading(true)
                 }
             }
@@ -148,6 +156,39 @@ class AuthViewModel : BaseViewModel() {
      */
     fun resetLogoutComplete() {
         _logoutComplete.value = false
+    }
+
+    /**
+     * Cập nhật thông tin giao hàng lên Firestore
+     */
+    fun updateDeliveryInfo(phone: String, address: String) {
+        val uid = repository.getCurrentUserId() ?: return
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("users").document(uid)
+            .set(
+                mapOf(
+                    "phoneNumber" to phone,
+                    "address" to address
+                ),
+                com.google.firebase.firestore.SetOptions.merge() // QUAN TRỌNG: Lệnh này giúp Firebase lưu thành công 100%
+            ).addOnSuccessListener {
+                _currentUser.value =
+                    _currentUser.value?.copy(phoneNumber = phone, address = address)
+                setSuccess("Đã lưu thông tin giao hàng thành công!")
+            }.addOnFailureListener {
+                setError("Lỗi lưu thông tin: ${it.message}")
+            }
+    }
+
+    fun changePassword(oldPass: String, newPass: String) {
+        setLoading(true)
+        repository.changePassword(oldPass, newPass).observeForever { result ->
+            when (result) {
+                is Result.Success -> setSuccess("Đổi mật khẩu thành công!")
+                is Result.Error -> setError(result.exception.message ?: "Lỗi đổi mật khẩu")
+                is Result.Loading -> setLoading(true)
+            }
+        }
     }
 }
 

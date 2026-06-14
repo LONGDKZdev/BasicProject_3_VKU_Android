@@ -10,31 +10,67 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,8 +92,8 @@ fun HomeScreen(
     authViewModel: AuthViewModel? = null
 ) {
     val vm = viewModel ?: viewModel<HomeViewModel>()
-    val authVm = authViewModel ?: viewModel<AuthViewModel>()
-
+    val authVm: AuthViewModel = viewModel()
+    val context = LocalContext.current
     val products by vm.products.observeAsState(emptyList())
     // Prefer ViewModel loading signal when available; fallback to false.
     // This helps distinguish between first-load (loading) and true empty state (no products in DB).
@@ -78,7 +114,7 @@ fun HomeScreen(
             .filter { p ->
                 if (q.isBlank()) true
                 else p.name.lowercase(Locale.getDefault()).contains(q) ||
-                    (p.description ?: "").lowercase(Locale.getDefault()).contains(q)
+                        (p.description ?: "").lowercase(Locale.getDefault()).contains(q)
             }
             .filter { p ->
                 if (selectedCategory == "Tất cả") true
@@ -139,7 +175,11 @@ fun HomeScreen(
                         // Top-right gear menu (Account/Settings/Logout)
                         Box {
                             IconButton(onClick = { isMenuOpen = true }) {
-                                Icon(Icons.Default.Settings, contentDescription = "Cài đặt", tint = Color.White)
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "Cài đặt",
+                                    tint = Color.White
+                                )
                             }
                             DropdownMenu(
                                 expanded = isMenuOpen,
@@ -147,16 +187,16 @@ fun HomeScreen(
                             ) {
                                 // NOTE: These routes are placeholders to keep UX.
                                 // If you want real screens, we'll add new composables + routes.
-                                DropdownMenuItem(
-                                    text = { Text("Quản lý tài khoản") },
-                                    onClick = {
-                                        isMenuOpen = false
-                                        navController.navigate(Routes.ACCOUNT_MANAGEMENT)
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.MoreVert, contentDescription = null)
-                                    }
-                                )
+//                                DropdownMenuItem(
+//                                    text = { Text("Quản lý tài khoản") },
+//                                    onClick = {
+//                                        isMenuOpen = false
+//                                        navController.navigate(Routes.ACCOUNT_MANAGEMENT)
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(Icons.Default.MoreVert, contentDescription = null)
+//                                    }
+//                                )
                                 DropdownMenuItem(
                                     text = { Text("Cài đặt") },
                                     onClick = {
@@ -167,16 +207,32 @@ fun HomeScreen(
                                         Icon(Icons.Default.Settings, contentDescription = null)
                                     }
                                 )
-                                Divider()
+                                HorizontalDivider(
+                                    Modifier,
+                                    DividerDefaults.Thickness,
+                                    DividerDefaults.color
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Thoát") },
                                     onClick = {
+                                        // Đóng menu
                                         isMenuOpen = false
-                                        // Chỉ gọi logout, để LaunchedEffect xử lý navigation
+
+                                        // 1. Dọn sạch SharedPreferences (chặn tự động đăng nhập)
+                                        context.getSharedPreferences(
+                                            "MixueLogin",
+                                            android.content.Context.MODE_PRIVATE
+                                        )
+                                            .edit().clear().apply()
+
+                                        // 2. Gửi lệnh đăng xuất lên Firebase
                                         authVm.logoutUser()
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.ExitToApp, contentDescription = null)
+
+                                        // 3. Đá văng ra màn hình Login và HỦY DIỆT TẬN GỐC toàn bộ trang cũ
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
+                                        }
                                     }
                                 )
                             }
@@ -198,7 +254,11 @@ fun HomeScreen(
                             )
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
                         },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -249,20 +309,25 @@ fun HomeScreen(
                     }
                 }
             }
-        }
-        ,
+        },
         // Move actions like Cart/History to bottom, horizontal.
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
                     selected = false,
-                    onClick = { navController.navigate(Routes.CART) },
+                    onClick = {
+                        if (authVm.getCurrentUserId() != null) navController.navigate(Routes.CART)
+                        else authVm.setError("Vui lòng đăng nhập để xem giỏ hàng!")
+                    },
                     icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Giỏ hàng") },
                     label = { Text("Giỏ hàng") },
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { navController.navigate(Routes.ORDER_HISTORY) },
+                    onClick = {
+                        if (authVm.getCurrentUserId() != null) navController.navigate(Routes.ORDER_HISTORY)
+                        else authVm.setError("Vui lòng đăng nhập để xem lịch sử!")
+                    },
                     icon = { Icon(Icons.Default.List, contentDescription = "Lịch sử") },
                     label = { Text("Lịch sử") },
                 )

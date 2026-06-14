@@ -4,7 +4,7 @@ import { productsService } from "./services/productsService.js";
 import { ordersService } from "./services/ordersService.js";
 import * as paymentsService from "./services/paymentsService.js";
 import { uploadProductImage } from "./supabase.js";
-import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
+//import { bootstrapAdminIfAllowed } from "./services/adminBootstrap.js";
 import { seedAll } from "./services/seedService.js";
 import { initOrdersTab } from "./orders-ui.js";
 import { register, logout as authLogout, shouldAutoLogin, getSavedLoginEmail } from "./auth.js";
@@ -45,6 +45,7 @@ const els = {
    tabOrders: $("tab-orders"),
    tabPayments: $("tab-payments"), // 🆕
   // products
+  tabRevenue: $("tab-revenue"),
   btnReloadProducts: $("btnReloadProducts"),
   productForm: $("productForm"),
   p_id: $("p_id"),
@@ -139,10 +140,27 @@ async function refreshProductsTable() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    if (act === "del") {
-      if (!confirm(`Delete product ${id}?`)) return;
-      await productsService.deleteProduct(id);
-      await refreshProductsTable();
+if (act === "del") {
+      const result = await Swal.fire({
+        title: 'Xóa sản phẩm này?',
+        text: `Món ăn này (ID: ${id}) sẽ bị xóa vĩnh viễn khỏi Thực đơn!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33', // Màu đỏ báo hiệu hành động nguy hiểm
+        cancelButtonColor: '#888',
+        confirmButtonText: '🗑️ Đồng ý Xóa',
+        cancelButtonText: 'Hủy bỏ'
+      });
+
+      if (result.isConfirmed) {
+        try {
+          await productsService.deleteProduct(id);
+          showSuccess("✅ Đã xóa sản phẩm thành công.");
+          await refreshProductsTable();
+        } catch (e) {
+          showError("❌ Lỗi khi xóa: " + (e?.message ?? String(e)));
+        }
+      }
     }
   };
 }
@@ -162,19 +180,43 @@ function refreshPaymentsTable() {
   }
 
   // Listen to all payments in real-time
-  unsubPayments = paymentsService.listenTransactions((items) => {
+unsubPayments = paymentsService.listenTransactions((items) => {
+    const tbody = els.paymentsTable?.querySelector("tbody");
+    if (!tbody) return;
     tbody.innerHTML = "";
 
-// Chỉ cộng tiền những giao dịch có status là SUCCESS
-    const totalRevenue = items
-      .filter(payment => payment.status === 'SUCCESS')
-      .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    // 1. Phân loại và tính tổng doanh thu
+    let totalRevenue = 0;
+    let cashRevenue = 0;
+    let transferRevenue = 0;
 
+    items.sort((a, b) => {
+            const timeA = a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : Date.now();
+            const timeB = b.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : Date.now();
+            return timeB - timeA;
+        });
+
+    items.forEach(payment => {
+        if (payment.status === 'SUCCESS') {
+            const amt = Number(payment.amount) || 0;
+            totalRevenue += amt;
+            if (payment.paymentMethod === 'CASH') cashRevenue += amt;
+            if (payment.paymentMethod === 'BANK_TRANSFER') transferRevenue += amt;
+        }
+    });
+
+    // 2. Cập nhật lên giao diện Dashboard
     const statRevenueEl = document.getElementById("statRevenue");
-    if (statRevenueEl) {
-      statRevenueEl.textContent = formatPrice(totalRevenue);
-    }
+    const statCashEl = document.getElementById("statCash");
+    const statTransferEl = document.getElementById("statTransfer");
 
+    if (statRevenueEl) statRevenueEl.textContent = formatPrice(totalRevenue);
+    if (statCashEl) statCashEl.textContent = formatPrice(cashRevenue);
+    if (statTransferEl) statTransferEl.textContent = formatPrice(transferRevenue);
+
+    updateRevenueChart(items);
+
+    // 3. Render bảng danh sách giao dịch
     if (items.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="muted text-center">Không có giao dịch nào</td></tr>`;
       return;
@@ -215,6 +257,7 @@ function getPaymentStatusBadge(status) {
 function getPaymentMethodBadge(method) {
   const badges = {
     CASH: '<span class="badge" style="background-color: rgba(156, 39, 176, 0.2); color: #9C27B0;">💵 Tiền Mặt</span>',
+    BANK_TRANSFER: '<span class="badge" style="background-color: rgba(33, 150, 243, 0.2); color: #2196F3;">💳 Chuyển Khoản</span>', // 🆕 THÊM DÒNG NÀY
     CARD: '<span class="badge" style="background-color: rgba(33, 150, 243, 0.2); color: #2196F3;">💳 Thẻ</span>',
     WALLET: '<span class="badge" style="background-color: rgba(76, 175, 80, 0.2); color: #4CAF50;">💰 Ví</span>'
   };
@@ -236,6 +279,7 @@ function switchTab(tabName) {
   setHidden(els.tabProducts, tabName !== "products");
   setHidden(els.tabOrders, tabName !== "orders");
   setHidden(els.tabPayments, tabName !== "payments");
+  setHidden(els.tabRevenue, tabName !== "revenue");
 }
 
 function escapeHtml(s) {
@@ -472,7 +516,7 @@ authService.listen(async (user) => {
   // DEV convenience: if this uid is allowlisted, promote role to ADMIN (merge).
   // This keeps the project smooth to demo without implementing invites yet.
   try {
-    await bootstrapAdminIfAllowed({ uid: user.uid });
+    //await bootstrapAdminIfAllowed({ uid: user.uid });
   } catch {
     // ignore bootstrap errors
   }
@@ -517,7 +561,7 @@ authService.listen(async (user) => {
           import("./services/ordersService.js").then(({ ordersService }) => {
             import("./admin-orders.js").then(({ listenOrders }) => {
                listenOrders(500, (orders) => {
-                 const successCount = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'DELIVERING' || o.status === 'DONE').length;
+                 const successCount = orders.filter(o => o.status === 'DONE').length;
                  const cancelledCount = orders.filter(o => o.status === 'CANCELLED').length;
 
                  const statSuccessEl = document.getElementById("statSuccessOrders");
@@ -570,3 +614,81 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
+
+  // ==========================================
+  // 📈 VẼ BIỂU ĐỒ DOANH THU BẰNG CHART.JS
+  // ==========================================
+  let revenueChartInstance = null;
+
+  function updateRevenueChart(transactions) {
+    const canvas = document.getElementById("revenueChart");
+    // Nếu HTML chưa có canvas hoặc chưa tải thư viện Chart.js thì bỏ qua
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // 1. Chỉ gom các giao dịch thành công
+    const successTx = transactions.filter(t => t.status === 'SUCCESS');
+
+    // 2. Nhóm doanh thu theo ngày
+    const groupedData = {};
+    successTx.forEach(t => {
+      if (!t.createdAt) return;
+      // Xử lý timestamp chuẩn với Firebase
+      const d = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+
+      if (!groupedData[dateKey]) groupedData[dateKey] = 0;
+      groupedData[dateKey] += (Number(t.amount) || 0);
+    });
+
+    // 3. Sắp xếp mốc thời gian tăng dần
+    const sortedKeys = Object.keys(groupedData).sort();
+    const labels = sortedKeys.map(k => {
+      const [y, m, d] = k.split('-');
+      return `${d}/${m}`; // Hiển thị Ngày/Tháng
+    });
+    const data = sortedKeys.map(k => groupedData[k]);
+
+    // 4. Vẽ biểu đồ
+    const ctx = canvas.getContext("2d");
+
+    if (revenueChartInstance) {
+      revenueChartInstance.destroy(); // Hủy bản vẽ cũ để vẽ đè bản cập nhật mới
+    }
+
+    revenueChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Doanh thu trong ngày (VNĐ)',
+          data: data,
+          borderColor: '#E63946', // Đỏ Mixue
+          backgroundColor: 'rgba(230, 57, 70, 0.2)',
+          borderWidth: 3,
+          pointBackgroundColor: '#E63946',
+          pointRadius: 5,
+          fill: true,
+          tension: 0.3 // Làm cong nét
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+              }
+            }
+          }
+        }
+      }
+    });
+  }

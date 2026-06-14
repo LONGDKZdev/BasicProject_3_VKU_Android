@@ -1,7 +1,8 @@
 package com.vohuy.mixueapp.data.model
 
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 /**
  * Order - Model đại diện cho đơn hàng
@@ -12,6 +13,7 @@ data class Order(
     val customerName: String = "", // 🆕 Tên khách hàng để hiển thị trên web admin
     val phoneNumber: String = "",
     val address: String = "",
+    val paymentMethod: String = "",
     val items: List<OrderItem> = emptyList(),
     val status: String = "PENDING",
     val totalPrice: Double = 0.0,

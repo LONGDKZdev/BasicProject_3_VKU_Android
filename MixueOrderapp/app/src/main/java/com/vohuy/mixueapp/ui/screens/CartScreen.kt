@@ -1,18 +1,46 @@
 package com.vohuy.mixueapp.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,15 +49,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.vohuy.mixueapp.data.model.OrderItem
+import com.vohuy.mixueapp.ui.components.ToastMessageHandler
 import com.vohuy.mixueapp.ui.navigation.Routes
+import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
-import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.utils.formatPrice
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,19 +75,31 @@ fun CartScreen(
     val currentUser by authVm.currentUser.observeAsState()
     val createdOrderId by orderVm.createdOrderId.observeAsState()
     val orderSuccess by orderVm.successMessage.observeAsState()
-    val orderError by orderVm.errorMessage.observeAsState()
 
-    // Khởi tạo context để dùng cho Toast
+// Khởi tạo context để dùng cho Toast
+    ToastMessageHandler(authVm, orderVm, viewModel)
     val context = LocalContext.current
+    val sharedPreferences =
+        context.getSharedPreferences("MixuePrefs", android.content.Context.MODE_PRIVATE)
 
     // Các biến cho form giao hàng
     var showCheckoutDialog by remember { mutableStateOf(false) }
     var phoneInput by remember { mutableStateOf(currentUser?.phoneNumber ?: "") }
-    var addressInput by remember { mutableStateOf("") }
+    var addressInput by remember {
+        mutableStateOf(
+            sharedPreferences.getString("saved_address", "") ?: ""
+        )
+    }
 
-    // Ensure current user is fetched (covers cold start)
     LaunchedEffect(Unit) {
         authVm.fetchCurrentUser()
+    }
+
+    // Ensure current user is fetched (covers cold start)
+    LaunchedEffect(currentUser) {
+        if (phoneInput.isBlank() && !currentUser?.phoneNumber.isNullOrBlank()) {
+            phoneInput = currentUser?.phoneNumber ?: ""
+        }
     }
 
     // On successful checkout -> clear cart and go to order history
@@ -118,7 +158,7 @@ fun CartScreen(
 
                         Button(
                             onClick = {
-                                val uid = currentUser?.id
+                                val uid = authVm.getCurrentUserId()
                                 if (uid.isNullOrBlank()) {
                                     orderVm.setError("Bạn cần đăng nhập để thanh toán")
                                 } else {
@@ -136,15 +176,6 @@ fun CartScreen(
                                 "Thanh Toán",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        if (!orderError.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = orderError ?: "",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
@@ -192,7 +223,7 @@ fun CartScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 96.dp)
             ) {
-                items(cartItems) { item ->
+                items(items = cartItems, key = { it.id }) { item ->
                     CartItemCard(item) { id ->
                         viewModel.removeFromCart(id)
                     }
@@ -201,11 +232,11 @@ fun CartScreen(
         }
     }
 
-    // ĐÃ CHUYỂN HỘP THOẠI VÀO ĐÚNG VỊ TRÍ (BÊN TRONG HÀM CartScreen)
+    // HỘP THOẠI XÁC NHẬN GIAO HÀNG & CHUYỂN KHOẢN
     if (showCheckoutDialog) {
         AlertDialog(
             onDismissRequest = { showCheckoutDialog = false },
-            title = { Text("Thông tin giao hàng", fontWeight = FontWeight.Bold) },
+            title = { Text("Thông tin & Thanh toán", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -214,7 +245,9 @@ fun CartScreen(
                         label = { Text("Số điện thoại liên hệ") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                        )
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -222,31 +255,112 @@ fun CartScreen(
                         onValueChange = { addressInput = it },
                         label = { Text("Địa chỉ nhận hàng cụ thể") },
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
+                        maxLines = 3,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
+                        )
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 🆕 Bảng Hướng Dẫn Chuyển Khoản
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                "💳 Hướng Dẫn Chuyển Khoản",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Ngân hàng: MB Bank", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "STK: 1234567890",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Chủ TK: MIXUE DA NANG",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "Số tiền: ${totalPrice.formatPrice()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Đang mở ứng dụng Ngân Hàng...",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = androidx.compose.ui.graphics.Color(
+                                        0xFF1976D2
+                                    )
+                                )
+                            ) {
+                                Text(
+                                    "🏦 Mở App Ngân Hàng",
+                                    color = androidx.compose.ui.graphics.Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val uid = currentUser?.id ?: return@Button
-                        if (phoneInput.isBlank() || addressInput.isBlank()) {
-                            Toast.makeText(context, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                        // FIX: Lấy UID trực tiếp từ Auth (không bao giờ null nếu đã đăng nhập)
+                        val uid = authVm.getCurrentUserId() ?: return@Button
+                        val phone = phoneInput.trim()
+                        val address = addressInput.trim()
+
+                        // 1. Kiểm tra số điện thoại (phải có ít nhất 10 số)
+                        if (phone.length < 10 || !phone.all { it.isDigit() }) {
+                            orderVm.setError("Số điện thoại không hợp lệ (ít nhất 10 chữ số)")
                             return@Button
                         }
+
+                        // 2. Kiểm tra địa chỉ (không được nhập quá ngắn)
+                        if (address.length < 5) {
+                            orderVm.setError("Vui lòng nhập địa chỉ giao hàng cụ thể hơn")
+                            return@Button
+                        }
+
+                        // 3. Lưu địa chỉ này vào bộ nhớ máy cho lần mua sau
+                        sharedPreferences.edit().putString("saved_address", address).apply()
+
+                        // 4. LƯU THÔNG TIN SĐT/ĐỊA CHỈ LÊN FIREBASE (Lần trước bị thiếu)
+                        authVm.updateDeliveryInfo(phone, address)
+
+                        // 5. Đóng hộp thoại
                         showCheckoutDialog = false
 
-                        // Chốt đơn với SĐT và Địa chỉ
+                        // 6. Chốt đơn chuyển khoản
                         orderVm.createOrder(
                             userId = uid,
                             items = cartItems,
-                            customerName = currentUser?.fullName ?: "Khách hàng",
-                            phoneNumber = phoneInput.trim(),
-                            address = addressInput.trim()
+                            // Đổi dòng gán customerName cũ thành thế này:
+                            customerName = currentUser?.fullName?.takeIf { it.isNotBlank() }
+                                ?: "Khách hàng",
+                            phoneNumber = phone,
+                            address = address
                         )
                     }
                 ) {
-                    Text("Xác nhận Đặt hàng")
+                    Text("Đã Chuyển Khoản & Lên Đơn")
                 }
             },
             dismissButton = {

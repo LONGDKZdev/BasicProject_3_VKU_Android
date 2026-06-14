@@ -1,276 +1,333 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<head>
+    <link href="./assets/Img/LogoEmployee_SaleUI.png" rel="icon" type="image/png">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
     <title>Mixue Admin</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
-  </head>
-  <body>
-    <header class="app-header">
-      <div class="brand">
+    <link href="./assets/styles.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Ép toàn bộ Web Admin dùng font mới */
+        body { font-family: 'Inter', system-ui, sans-serif !important; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header class="app-header">
+    <div class="brand">
         <div class="brand__title">Mixue Admin</div>
         <div class="brand__sub">Admin console (Firebase Firestore)</div>
-      </div>
+    </div>
 
-      <div class="userbar">
-        <div id="userInfo" class="userbar__info">Chưa đăng nhập</div>
-        <button id="btnLogout" class="btn btn--ghost" disabled>Đăng xuất</button>
-      </div>
-    </header>
+    <div class="userbar">
+        <div class="userbar__info" id="userInfo">Chưa đăng nhập</div>
+        <button class="btn btn--ghost" disabled id="btnLogout">Đăng xuất</button>
+    </div>
+</header>
 
-    <main class="container">
-      <section class="card" id="cardLogin">
+<main class="container">
+    <section class="card" id="cardLogin">
         <h2>Xác thực Admin</h2>
         <p class="muted">
-          Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được gán quyền <b>ADMIN</b>
-          tự động.
+            Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được
+            gán quyền <b>ADMIN</b>
+            tự động.
         </p>
 
         <div class="tabs" style="margin-bottom: 16px;">
-          <!-- Explicit type="button" to avoid accidental form submit -->
-          <button type="button" class="tab tab--active" id="tabModeLogin">Đăng nhập</button>
-          <button type="button" class="tab" id="tabModeRegister">Đăng ký</button>
+            <!-- Explicit type="button" to avoid accidental form submit -->
+            <button class="tab tab--active" id="tabModeLogin" type="button">Đăng nhập</button>
+            <button class="tab" id="tabModeRegister" type="button">Đăng ký</button>
         </div>
 
-        <form id="authForm" class="form">
-          <div id="registerFields" class="hidden">
+        <form class="form" id="authForm">
+            <div class="hidden" id="registerFields">
+                <label>
+                    Họ và tên
+                    <input autocomplete="name" id="fullName" type="text"/>
+                </label>
+            </div>
             <label>
-              Họ và tên
-              <input id="fullName" type="text" autocomplete="name" />
+                Email
+                <input autocomplete="username" id="email" required type="email"/>
             </label>
-          </div>
-          <label>
-            Email
-            <input id="email" type="email" autocomplete="username" required />
-          </label>
-          <label>
-            Mật khẩu
-            <input id="password" type="password" autocomplete="current-password" required />
-          </label>
-          <div id="registerFieldsConfirm" class="hidden">
             <label>
-              Nhập lại mật khẩu
-              <input id="confirmPassword" type="password" autocomplete="new-password" />
+                Mật khẩu
+                <input autocomplete="current-password" id="password" required type="password"/>
             </label>
-          </div>
-          <div class="row">
-            <button class="btn" type="submit" id="btnSubmitAuth">Đăng nhập</button>
-          </div>
+            <div class="hidden" id="registerFieldsConfirm">
+                <label>
+                    Nhập lại mật khẩu
+                    <input autocomplete="new-password" id="confirmPassword" type="password"/>
+                </label>
+            </div>
+            <div class="row">
+                <button class="btn" id="btnSubmitAuth" type="submit">Đăng nhập</button>
+            </div>
         </form>
 
-        <div id="verifyHint" class="muted small" style="margin-top: 8px;"></div>
-      </section>
+        <div class="muted small" id="verifyHint" style="margin-top: 8px;"></div>
+    </section>
 
-      <section class="card hidden" id="cardRole">
+    <section class="card hidden" id="cardRole">
         <h2>Quyền hiện tại</h2>
         <div class="kv">
-          <!-- UI requirement: hide UID -->
-          <!--
-          <div class="kv__k">UID</div>
-          <div class="kv__v" id="kvUid">-</div>
-          -->
-          <div class="kv__k">Email</div>
-          <div class="kv__v" id="kvEmail">-</div>
-          <div class="kv__k">Role</div>
-          <div class="kv__v"><span id="kvRole" class="pill">-</span></div>
+            <!-- UI requirement: hide UID -->
+            <!--
+            <div class="kv__k">UID</div>
+            <div class="kv__v" id="kvUid">-</div>
+            -->
+            <div class="kv__k">Email</div>
+            <div class="kv__v" id="kvEmail">-</div>
+            <div class="kv__k">Role</div>
+            <div class="kv__v"><span class="pill" id="kvRole">-</span></div>
         </div>
-      </section>
+    </section>
 
 
-      <section class="card hidden" id="cardAdmin">
-        <h2>Bảng Điều Khiển</h2>
-        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
-          <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid var(--primary);">
-            <div class="muted small font-bold">TỔNG DOANH THU</div>
-            <div id="statRevenue" style="font-size: 24px; font-weight: bold; color: var(--primary); margin-top: 8px;">0 ₫</div>
-          </div>
-          <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #4CAF50;">
-            <div class="muted small font-bold">ĐƠN HOÀN THÀNH</div>
-            <div id="statSuccessOrders" style="font-size: 24px; font-weight: bold; color: #4CAF50; margin-top: 8px;">0</div>
-          </div>
-          <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #F44336;">
-            <div class="muted small font-bold">ĐƠN ĐÃ HỦY</div>
-            <div id="statCancelledOrders" style="font-size: 24px; font-weight: bold; color: #F44336; margin-top: 8px;">0</div>
-          </div>
+    <section class="card hidden" id="cardAdmin">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;">Bảng Điều Khiển</h2>
+            <a class="btn" href="pos.html"
+               style="background-color: #E63946; color: white; text-decoration: none; font-weight: bold; border: none; border-radius: 8px;">
+                🎧 Mở Giao Diện POS (Lên Đơn)
+            </a>
+        </div>
+        <div class="dashboard-grid"
+             style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <div class="muted small font-bold">TỔNG DOANH THU</div>
+                <div id="statRevenue"
+                     style="font-size: 24px; font-weight: bold; color: var(--primary); margin-top: 8px;">
+                    0 ₫
+                </div>
+            </div>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #9C27B0;">
+                <div class="muted small font-bold">POS (Tiền Mặt)</div>
+                <div id="statCash"
+                     style="font-size: 24px; font-weight: bold; color: #9C27B0; margin-top: 8px;">0
+                    ₫
+                </div>
+            </div>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #2196F3;">
+                <div class="muted small font-bold">APP (Chuyển Khoản)</div>
+                <div id="statTransfer"
+                     style="font-size: 24px; font-weight: bold; color: #2196F3; margin-top: 8px;">0
+                    ₫
+                </div>
+            </div>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #4CAF50;">
+                <div class="muted small font-bold">ĐƠN HOÀN THÀNH</div>
+                <div id="statSuccessOrders"
+                     style="font-size: 24px; font-weight: bold; color: #4CAF50; margin-top: 8px;">0
+                </div>
+            </div>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #F44336;">
+                <div class="muted small font-bold">ĐƠN ĐÃ HỦY</div>
+                <div id="statCancelledOrders"
+                     style="font-size: 24px; font-weight: bold; color: #F44336; margin-top: 8px;">0
+                </div>
+            </div>
         </div>
         <div class="tabs">
-          <button class="tab admin-tab tab--active" data-tab="products">🍔 Thực Đơn</button>
-          <button class="tab admin-tab" data-tab="orders">📦 Đơn Hàng</button>
-          <button class="tab admin-tab" data-tab="payments">💳 Giao Dịch</button>
+            <button class="tab admin-tab tab--active" data-tab="products">🍔 Thực Đơn</button>
+            <button class="tab admin-tab" data-tab="orders">📦 Đơn Hàng</button>
+            <button class="tab admin-tab" data-tab="payments">💳 Giao Dịch</button>
+            <button class="tab admin-tab" data-tab="revenue">📈 Doanh Thu</button>
+            <button class="tab admin-tab" data-tab="approvals" onclick="window.loadApprovals()">👤
+                Duyệt Admin
+            </button>
         </div>
 
         <div class="tabpane" id="tab-products">
-          <div class="row row--space">
-            <div>
-              <div class="muted">Cơ sở dữ liệu: <code>products</code></div>
+            <div class="row row--space">
+                <div>
+                    <div class="muted">Cơ sở dữ liệu: <code>products</code></div>
+                </div>
+                <div class="row">
+                    <button class="btn" id="btnReloadProducts">Tải Lại</button>
+                </div>
             </div>
-            <div class="row">
-              <button class="btn" id="btnReloadProducts">Tải Lại</button>
-            </div>
-          </div>
 
-          <form id="productForm" class="form form--grid">
-            <label>
-              Mã Món (ID - Để trống tự động sinh)
-              <input id="p_id" placeholder="VD: p01" />
-            </label>
-            <label>
-              Tên Món Ăn
-              <input id="p_name" required placeholder="VD: Trà sữa trân châu" />
-            </label>
-            <label>
-              Giá Bán (VNĐ)
-              <input id="p_price" type="number" min="0" step="1000" required placeholder="VD: 25000" />
-            </label>
-            <label>
-              Danh Mục
-              <input id="p_category" placeholder="VD: Kem / Trà Sữa / Nước" required />
-            </label>
-            <label class="span2">
-              Mô Tả Sản Phẩm
-              <input id="p_description" placeholder="Nhập mô tả ngắn gọn..." />
-            </label>
-            <label>
-              Trạng Thái Bán
-              <select id="p_available">
-                <option value="true" selected>Đang bán (True)</option>
-                <option value="false">Tạm hết (False)</option>
-              </select>
-            </label>
-            <label class="span2">
-              Đường Dẫn Ảnh (URL)
-              <input id="p_imageUrl" placeholder="https://..." />
-            </label>
+            <form class="form form--grid" id="productForm">
+                <label>
+                    Mã Món (ID - Để trống tự động sinh)
+                    <input id="p_id" placeholder="VD: p01"/>
+                </label>
+                <label>
+                    Tên Món Ăn
+                    <input id="p_name" placeholder="VD: Trà sữa trân châu" required/>
+                </label>
+                <label>
+                    Giá Bán (VNĐ)
+                    <input id="p_price" min="0" placeholder="VD: 25000" required step="1000"
+                           type="number"/>
+                </label>
+                <label>
+                    Danh Mục
+                    <select id="p_category" required>
+                        <option value="">-- Chọn danh mục --</option>
+                        <option value="Trà sữa">Trà sữa</option>
+                        <option value="Trà trái cây">Trà trái cây</option>
+                        <option value="Kem">Kem</option>
+                        <option value="Cà phê">Cà phê</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </label>
+                <label class="span2">
+                    Mô Tả Sản Phẩm
+                    <input id="p_description" placeholder="Nhập mô tả ngắn gọn..."/>
+                </label>
+                <label>
+                    Trạng Thái Bán
+                    <select id="p_available">
+                        <option selected value="true">Đang bán (True)</option>
+                        <option value="false">Tạm hết (False)</option>
+                    </select>
+                </label>
+                <label class="span2">
+                    Đường Dẫn Ảnh (URL)
+                    <input id="p_imageUrl" placeholder="https://..."/>
+                </label>
 
-            <label class="span2">
-              Tải Ảnh Lên (Supabase)
-              <input id="p_imageFile" type="file" accept="image/*" />
-              <span class="muted small">Chọn ảnh → Bấm Upload → Hệ thống tự động điền URL vào ô trên.</span>
-            </label>
-            <div class="row span2">
-              <button class="btn btn--ghost" type="button" id="btnUploadImage">Tải Ảnh Lên</button>
-              <span class="muted font-bold" id="uploadStatus" style="color: var(--primary);"></span>
-            </div>
-            <div class="row span2">
-              <button class="btn" type="submit" id="btnSaveProduct">Lưu Sản Phẩm</button>
-              <button class="btn btn--ghost" type="button" id="btnResetProduct">Làm Mới Form</button>
-            </div>
-          </form>
+                <label class="span2">
+                    Tải Ảnh Lên (Supabase)
+                    <input accept="image/*" id="p_imageFile" type="file"/>
+                    <span class="muted small">Chọn ảnh → Bấm Upload → Hệ thống tự động điền URL vào ô trên.</span>
+                </label>
+                <div class="row span2">
+                    <button class="btn btn--ghost" id="btnUploadImage" type="button">Tải Ảnh Lên
+                    </button>
+                    <span class="muted font-bold" id="uploadStatus"
+                          style="color: var(--primary);"></span>
+                </div>
+                <div class="row span2">
+                    <button class="btn" id="btnSaveProduct" type="submit">Lưu Sản Phẩm</button>
+                    <button class="btn btn--ghost" id="btnResetProduct" type="button">Làm Mới Form
+                    </button>
+                </div>
+            </form>
 
-          <div class="tablewrap" style="margin-top: 24px;">
-            <table class="table" id="productsTable">
-              <thead>
-              <tr>
-                <th>Mã (ID)</th>
-                <th>Tên Món</th>
-                <th>Giá Bán</th>
-                <th>Danh Mục</th>
-                <th>Trạng Thái</th>
-                <th>Thao Tác</th>
-              </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
+            <div class="tablewrap" style="margin-top: 24px;">
+                <table class="table" id="productsTable">
+                    <thead>
+                    <tr>
+                        <th>Mã (ID)</th>
+                        <th>Tên Món</th>
+                        <th>Giá Bán</th>
+                        <th>Danh Mục</th>
+                        <th>Trạng Thái</th>
+                        <th>Thao Tác</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="tabpane hidden" id="tab-orders">
-          <div class="row row--space">
-            <div>
-              <div class="muted">Cơ sở dữ liệu: <code>orders</code></div>
+            <div class="row row--space">
+                <div>
+                    <div class="muted">Cơ sở dữ liệu: <code>orders</code></div>
+                </div>
+                <div class="row">
+                    <button class="btn" id="btnReloadOrders">Tải Lại</button>
+                </div>
             </div>
-            <div class="row">
-              <button class="btn" id="btnReloadOrders">Tải Lại</button>
-            </div>
-          </div>
 
-          <div class="section-header" style="margin-top: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--primary);">
-            <h3 style="color: var(--primary); margin: 0;">📋 Tất Cả Đơn Hàng</h3>
-          </div>
-          <div class="tablewrap" style="margin-top: 16px;">
-            <table class="table" id="ordersTable">
-              <thead>
-              <tr>
-                <th>Mã Đơn</th>
-                <th>Khách Hàng</th>
-                <th>Tổng Tiền</th>
-                <th>Trạng Thái</th>
-                <th>Thời Gian Đặt</th>
-                <th>Thao Tác</th>
-              </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="tabpane hidden" id="tab-orders">
-          <div class="row row--space">
-            <div>
-              <div class="muted">Collection: <code>orders</code></div>
+            <!-- 📋 ALL ORDERS -->
+            <div class="section-header"
+                 style="margin-top: 30px; padding-bottom: 10px; border-bottom: 2px solid #4ECDC4;">
+                <h3 style="color: #5fc6d9; margin: 0;">📋 Tất Cả Đơn Hàng</h3>
             </div>
-            <div class="row">
-              <button class="btn" id="btnReloadOrders">Reload</button>
+            <div class="tablewrap">
+                <table class="table" id="ordersTable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Khách hàng</th>
+                        <th>Số tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th>Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-          </div>
-
-           <!-- 📋 ALL ORDERS -->
-          <div class="section-header" style="margin-top: 30px; padding-bottom: 10px; border-bottom: 2px solid #4ECDC4;">
-            <h3 style="color: #5fc6d9; margin: 0;">📋 Tất Cả Đơn Hàng</h3>
-          </div>
-          <div class="tablewrap">
-            <table class="table" id="ordersTable">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Khách hàng</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>CreatedAt</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
         </div>
 
         <div class="tabpane hidden" id="tab-payments">
-          <div class="row row--space">
-            <div>
-              <div class="muted">Collection: <code>transactions</code></div>
+            <div class="row row--space">
+                <div>
+                    <div class="muted">Cơ sở dữ liệu: <code>transactions</code></div>
+                </div>
+                <div class="row">
+                    <button class="btn" id="btnReloadPayments">Tải Lại</button>
+                </div>
             </div>
-            <div class="row">
-              <button class="btn" id="btnReloadPayments">Reload</button>
-            </div>
-          </div>
 
-          <div class="tablewrap">
-            <table class="table" id="paymentsTable">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Khách hàng</th>
-                  <th>Đơn Hàng</th>
-                  <th>Số Tiền</th>
-                  <th>Phương Thức</th>
-                  <th>Trạng Thái</th>
-                  <th>Thời Gian</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
+            <div class="tablewrap">
+                <table class="table" id="paymentsTable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Khách hàng</th>
+                        <th>Đơn Hàng</th>
+                        <th>Số Tiền</th>
+                        <th>Phương Thức</th>
+                        <th>Trạng Thái</th>
+                        <th>Thời Gian</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
-      </section>
 
-    </main>
+        <div class="tabpane hidden" id="tab-approvals">
+            <div class="section-header"
+                 style="margin-top: 20px; padding-bottom: 10px; border-bottom: 2px solid #2196F3;">
+                <h3 style="color: #2196F3; margin: 0;">👤 Yêu Cầu Cấp Quyền Quản Trị (Admin)</h3>
+            </div>
+            <div class="tablewrap" style="margin-top: 16px;">
+                <table class="table" id="approvalsTable">
+                    <thead>
+                    <tr>
+                        <th>Họ Và Tên</th>
+                        <th>Email Đăng Ký</th>
+                        <th>Quyền Hiện Tại</th>
+                        <th>Thao Tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabpane hidden" id="tab-revenue">
+            <div class="section-header"
+                 style="margin-top: 20px; padding-bottom: 10px; border-bottom: 2px solid #E63946;">
+                <h3 style="color: #E63946; margin: 0;">📈 Biểu Đồ Doanh Thu Theo Ngày</h3>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 20px;">
+                <canvas id="revenueChart" style="width: 100%; height: 400px;"></canvas>
+            </div>
+        </div>
+
+    </section>
+
+</main>
 
 <!--    <footer class="app-footer">-->
 <!--      <div class="muted small">Serve bằng HTTP (localhost). Dữ liệu đồng bộ trực tiếp với Firebase Firestore.</div>-->
 <!--    </footer>-->
-
-    <script type="module" src="./src/main.js"></script>
-  </body>
+<script src="./src/admin-approvals.js" type="module"></script>
+<script src="./src/main.js" type="module"></script>
+</body>
 </html>

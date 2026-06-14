@@ -35,12 +35,12 @@ export async function register(email, password, fullName) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   const uid = cred.user.uid;
 
-  // Create user document with ADMIN role and Full Name
+
   await setDoc(doc(db, COLLECTIONS.users, uid), {
     id: uid,
     email: email,
     fullName: fullName,
-    role: "ADMIN",
+    role: "USER",
     createdAt: new Date(),
   });
 

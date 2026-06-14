@@ -1,4 +1,4 @@
-# Temporary build folders and kotlin tooling
+# 1. Android & Gradle Build Files
 .gradle/
 .kotlin/
 **/build/
@@ -9,22 +9,22 @@ out/
 bin/
 gen/
 
-# Local configuration file (SDK path, etc.)
+# 2. Local Configuration & Keystores
 local.properties
+*.jks
+*.keystore
+google-services.json
 
-# Built application files
+# 3. Built Application Files
 *.apk
 *.aab
-
-# Files for the Dalvik/ART VM
 *.dex
-
-# Java class files
 *.class
 
-# Android Studio specific files
+# 4. Android Studio & IDE Files
 .idea/
 *.iml
+*.iws
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/libraries/
@@ -32,41 +32,35 @@ local.properties
 .idea/modules.xml
 captures/
 navigation/
+.vscode/
 
-# Keystore files (for signing)
-*.jks
-*.keystore
-
-# Google Services (e.g., Firebase)
-google-services.json
-
-# External native build folder
+# 5. Native Build & Logs
 externalNativeBuild/
-
-# NDK build artifacts
 obj/
-
-# Log files
 *.log
 **/*.log
+npm-debug.log
+yarn-error.log
 
-# OS-specific files
+# 6. OS-specific Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Crashlytics/Fabric plugin files
+# 7. Crashlytics/Fabric
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-# ProGuard generated files and folders
+# 8. ProGuard
 proguard/
 
-# Aggregated code files & list files
-gom_code_part_1.txt
-docs/Danh_sach_file_auto.txt
-docs/gom_code_New_17-5-2026.txt
-*gom_code*.txt
-*Danh_sach_file*.txt
-**/gom_code_*.txt
-**/Danh_sach_file_*.txt
+# 9. Custom: Ignore Generated Text/Logs/Code Aggregation
+gom_code_*.txt
+Danh_sach_file_*.txt
+docs/gom_code_*.txt
+docs/Danh_sach_file_*.txt
