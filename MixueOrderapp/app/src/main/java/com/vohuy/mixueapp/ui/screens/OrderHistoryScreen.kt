@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -59,6 +58,8 @@ import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.formatPrice
+import com.vohuy.mixueapp.utils.sdp
+import com.vohuy.mixueapp.utils.ssp
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -86,7 +87,6 @@ fun OrderHistoryScreen(
         }
     }
 
-    // 🔄 Pull-to-refresh state
     var isRefreshing by remember { mutableStateOf(false) }
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -100,7 +100,6 @@ fun OrderHistoryScreen(
         }
     )
 
-    // Phân loại: Đơn đang chờ xử lý và Đơn đã có phản hồi (Duyệt/Giao/Hoàn thành/Hủy)
     val pendingOrders = orders.filter { it.status == Constants.ORDER_STATUS_PENDING }
     val historyOrders = orders.filter { it.status != Constants.ORDER_STATUS_PENDING }
 
@@ -141,10 +140,9 @@ fun OrderHistoryScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 12.sdp),
+                    verticalArrangement = Arrangement.spacedBy(12.sdp)
                 ) {
-                    // ⏳ ĐƠN CHỜ XÁC THỰC (Ưu tiên hiển thị trên cùng)
                     if (pendingOrders.isNotEmpty()) {
                         item {
                             Text(
@@ -152,7 +150,7 @@ fun OrderHistoryScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                modifier = Modifier.padding(top = 8.sdp, bottom = 4.sdp)
                             )
                         }
                         items(pendingOrders) { order ->
@@ -165,22 +163,21 @@ fun OrderHistoryScreen(
                         }
                     }
 
-                    // 📦 CÁC ĐƠN HÀNG KHÁC (Đã duyệt, Đang giao, Hoàn thành, Hủy)
                     if (historyOrders.isNotEmpty()) {
                         item {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.sdp))
                             Text(
                                 "📦 Đơn Hàng Của Bạn",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                modifier = Modifier.padding(bottom = 4.sdp)
                             )
                         }
                         items(historyOrders) { order ->
                             OrderCard(order)
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                    item { Spacer(modifier = Modifier.height(16.sdp)) }
                 }
             }
 
@@ -193,23 +190,19 @@ fun OrderHistoryScreen(
     }
 }
 
-/**
- * 🎨 THẺ ĐƠN HÀNG LỊCH SỬ (Có Thanh Tiến Độ)
- */
 @Composable
 fun OrderCard(order: Order) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.sdp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.sdp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.sdp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -232,25 +225,26 @@ fun OrderCard(order: Order) {
                     text = order.totalPrice.formatPrice(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    softWrap = false // Chống bẻ dòng giá tiền
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.sdp))
 
-            // Thông tin Giao hàng & Thanh toán
             val paymentMethodText =
                 if (order.paymentMethod == Constants.PAYMENT_METHOD_BANK_TRANSFER) "💳 Chuyển khoản" else "💵 Tiền mặt"
             val addressText =
                 if (!order.address.isBlank()) "📍 ${order.address}" else "📍 Mua tại quầy"
 
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+            Column(modifier = Modifier.padding(bottom = 12.sdp)) {
                 Text(
                     text = paymentMethodText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.sdp))
                 Text(
                     text = addressText,
                     style = MaterialTheme.typography.bodySmall,
@@ -258,35 +252,31 @@ fun OrderCard(order: Order) {
                 )
             }
 
-            // Thanh tiến độ đơn hàng
             OrderProgressBar(currentStatus = order.status)
         }
     }
 }
 
-/**
- * 🎨 THẺ ĐƠN CHỜ XÁC THỰC (Có nút Hủy)
- */
 @Composable
 fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .border(
-                width = 1.dp,
+                width = 1.sdp,
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.sdp)
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.sdp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.sdp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.sdp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -309,24 +299,23 @@ fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
+                modifier = Modifier.padding(vertical = 12.sdp),
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
             )
 
-            // Thông tin Giao hàng & Thanh toán
             val paymentMethodText =
                 if (order.paymentMethod == Constants.PAYMENT_METHOD_BANK_TRANSFER) "💳 Chuyển khoản (Đang chờ Admin xác nhận tiền)" else "💵 Tiền mặt"
             val addressText =
                 if (!order.address.isBlank()) "📍 ${order.address}" else "📍 Khách chưa nhập địa chỉ"
 
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+            Column(modifier = Modifier.padding(bottom = 12.sdp)) {
                 Text(
                     text = paymentMethodText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.sdp))
                 Text(
                     text = addressText,
                     style = MaterialTheme.typography.bodySmall,
@@ -334,7 +323,6 @@ fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
                 )
             }
 
-            // Nút Hủy Đơn & Tổng tiền
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -344,7 +332,9 @@ fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
                     text = order.totalPrice.formatPrice(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    softWrap = false // Chống bẻ dòng giá tiền
                 )
                 Button(
                     onClick = { onCancelClick(order.id) },
@@ -357,9 +347,6 @@ fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
     }
 }
 
-/**
- * 🚀 COMPONENT: Thanh Tiến Độ Đơn Hàng Trực Quan
- */
 @Composable
 fun OrderProgressBar(currentStatus: String) {
     if (currentStatus == Constants.ORDER_STATUS_CANCELLED) {
@@ -368,9 +355,9 @@ fun OrderProgressBar(currentStatus: String) {
                 .fillMaxWidth()
                 .background(
                     MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                    RoundedCornerShape(8.dp)
+                    RoundedCornerShape(8.sdp)
                 )
-                .padding(12.dp),
+                .padding(12.sdp),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -395,7 +382,7 @@ fun OrderProgressBar(currentStatus: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 8.sdp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -408,12 +395,11 @@ fun OrderProgressBar(currentStatus: String) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                // Vòng tròn (Trạng thái)
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(28.sdp)
                         .background(if (isCompleted) stepColor else Color.Transparent, CircleShape)
-                        .border(2.dp, stepColor, CircleShape),
+                        .border(2.sdp, stepColor, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isCompleted) {
@@ -421,32 +407,32 @@ fun OrderProgressBar(currentStatus: String) {
                             Icons.Default.Check,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.sdp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.sdp))
 
-                // Nhãn mô tả
+                // ĐÃ SỬA LỖI MẤT CHỮ TRẠNG THÁI:
                 Text(
                     text = pair.second,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.ssp),
                     color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Gray,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
-                    overflow = TextOverflow.Visible
+                    softWrap = false, // Cấm Compose tự ý ngắt chữ xuống dòng khi thiếu chỗ
+                    overflow = TextOverflow.Visible // Cho phép chữ lấn sang 2 bên một chút nếu cần
                 )
             }
 
-            // Đường nối giữa các bước
             if (index < steps.size - 1) {
                 HorizontalDivider(
                     modifier = Modifier
                         .weight(0.5f)
-                        .padding(bottom = 16.dp), // Canh cho đường gạch nằm giữa các vòng tròn
+                        .padding(bottom = 16.sdp),
                     color = if (index < currentIndex) MaterialTheme.colorScheme.primary else Color.LightGray,
-                    thickness = 2.dp
+                    thickness = 2.sdp
                 )
             }
         }

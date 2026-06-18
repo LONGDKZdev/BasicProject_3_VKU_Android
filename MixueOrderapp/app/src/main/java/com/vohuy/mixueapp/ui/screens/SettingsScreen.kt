@@ -46,8 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.vohuy.mixueapp.utils.sdp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,29 +86,29 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.sdp)
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.sdp))
 
             // ==================== ACCOUNT SECTION ====================
             Text(
                 text = "Tài Khoản",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.sdp)
             )
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 8.sdp)
                     .clickable { navController.navigate("account_management") },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.sdp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(16.sdp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -121,7 +121,7 @@ fun SettingsScreen(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.sdp))
                         Column {
                             Text(
                                 text = "Quản Lý Tài Khoản",
@@ -138,20 +138,20 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(20.sdp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.sdp))
 
             // ==================== CHANGE PASSWORD SECTION ====================
             Text(
                 text = "Bảo Mật",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.sdp)
             )
 
             if (!showChangePassword) {
@@ -163,23 +163,23 @@ fun SettingsScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(48.sdp),
+                    shape = RoundedCornerShape(12.sdp)
                 ) {
                     Icon(
                         Icons.Default.Lock,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.sdp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.sdp))
                     Text("Đổi Mật Khẩu", fontWeight = FontWeight.SemiBold)
                 }
             } else {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .padding(vertical = 12.sdp),
+                    shape = RoundedCornerShape(12.sdp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
@@ -187,14 +187,14 @@ fun SettingsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(16.sdp)
                     ) {
                         Text(
                             text = "Đổi Mật Khẩu",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.sdp))
 
                         if (passwordError.isNotEmpty()) {
                             Text(
@@ -202,7 +202,7 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.sdp))
                         }
 
                         OutlinedTextField(
@@ -222,7 +222,7 @@ fun SettingsScreen(
                             singleLine = true,
                             visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.sdp))
 
                         OutlinedTextField(
                             value = newPassword,
@@ -241,7 +241,7 @@ fun SettingsScreen(
                             singleLine = true,
                             visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.sdp))
 
                         OutlinedTextField(
                             value = confirmPassword,
@@ -260,13 +260,13 @@ fun SettingsScreen(
                             singleLine = true,
                             visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation()
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.sdp))
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                .height(44.sdp),
+                            horizontalArrangement = Arrangement.spacedBy(12.sdp)
                         ) {
                             OutlinedButton(
                                 onClick = {
@@ -279,7 +279,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(10.sdp)
                             ) {
                                 Text("Hủy")
                             }
@@ -315,7 +315,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(10.sdp)
                                 // ĐÃ XÓA HOÀN TOÀN DÒNG 'enabled = ...' LÀM LIỆT NÚT
                             ) {
                                 Text("Cập nhật")
@@ -325,7 +325,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.sdp))
 
             // ==================== DISPLAY SECTION ====================
 
@@ -333,19 +333,19 @@ fun SettingsScreen(
                 text = "Hiển Thị",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.sdp)
             )
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .padding(vertical = 8.sdp),
+                shape = RoundedCornerShape(12.sdp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(16.sdp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -358,7 +358,7 @@ fun SettingsScreen(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.sdp))
                         Column {
                             Text(
                                 text = "Chế Độ Tối",
@@ -390,14 +390,14 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.sdp))
 
             // ==================== ABOUT SECTION ====================
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .padding(vertical = 8.sdp),
+                shape = RoundedCornerShape(12.sdp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -405,14 +405,14 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.sdp)
                 ) {
                     Text(
                         text = "Về Ứng Dụng",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.sdp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -428,7 +428,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(4.sdp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -447,7 +447,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(48.sdp))
         }
     }
 }

@@ -67,7 +67,7 @@ fun MixueAppTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = getResponsiveTypography(),
         content = content
     )
 }

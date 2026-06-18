@@ -1,25 +1,47 @@
 package com.vohuy.mixueapp.ui.screens
 
+// QUAN TRỌNG: Import bộ quy đổi kích thước
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -27,6 +49,7 @@ import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.ProductViewModel
 import com.vohuy.mixueapp.utils.formatPrice
+import com.vohuy.mixueapp.utils.sdp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +62,6 @@ fun ProductDetailScreen(
     val productVm = productViewModel ?: viewModel<ProductViewModel>()
     val cartVm = cartViewModel ?: viewModel<CartViewModel>()
 
-    // Load product by id once when entering screen / when id changes
     LaunchedEffect(productId) {
         if (productId.isNotBlank()) {
             productVm.loadProductById(productId)
@@ -47,9 +69,10 @@ fun ProductDetailScreen(
     }
 
     val product by productVm.selectedProduct.observeAsState(null)
-    var quantity by remember { mutableStateOf(1) }
+    var quantity by remember { mutableIntStateOf(1) }
 
-    val sheetShape = remember { RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp) }
+    // Đã chuyển 28.dp thành 28.sdp cho độ cong của Bottom Sheet
+    val sheetShape = RoundedCornerShape(topStart = 28.sdp, topEnd = 28.sdp)
 
     Scaffold(
         topBar = {
@@ -58,7 +81,7 @@ fun ProductDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -67,13 +90,14 @@ fun ProductDetailScreen(
         },
         bottomBar = {
             Surface(
-                tonalElevation = 6.dp,
-                shadowElevation = 10.dp,
+                tonalElevation = 6.sdp,
+                shadowElevation = 10.sdp,
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .navigationBarsPadding()
+                        .padding(16.sdp)
                 ) {
                     Button(
                         onClick = {
@@ -85,8 +109,8 @@ fun ProductDetailScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                            .height(56.sdp), // Đã tự động thu nhỏ nút bấm
+                        shape = RoundedCornerShape(16.sdp),
                         enabled = product != null
                     ) {
                         Text(
@@ -109,34 +133,32 @@ fun ProductDetailScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                // Hero image (edge-to-edge)
+                // ĐÃ SỬA: Ảnh Hero chiếm 360.dp giờ sẽ tự bóp lại vừa vặn không che mất chữ
                 AsyncImage(
                     model = product?.imageUrl.orEmpty(),
                     contentDescription = product?.name ?: "Product Image",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(360.dp)
+                        .height(360.sdp)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentScale = ContentScale.Crop
                 )
 
-                // spacer so the sheet doesn't get clipped by bottom bar
-                Spacer(modifier = Modifier.height(96.dp))
+                Spacer(modifier = Modifier.height(96.sdp))
             }
 
-            // Overlapping bottom-sheet-like info surface
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
                 shape = sheetShape,
-                tonalElevation = 2.dp,
-                shadowElevation = 12.dp,
+                tonalElevation = 2.sdp,
+                shadowElevation = 12.sdp,
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp)
+                        .padding(horizontal = 20.sdp, vertical = 18.sdp)
                 ) {
                     if (product == null) {
                         Text(
@@ -144,7 +166,7 @@ fun ProductDetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.sdp))
                     }
 
                     Text(
@@ -155,7 +177,7 @@ fun ProductDetailScreen(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.sdp))
 
                     Text(
                         text = (product?.price ?: 0.0).formatPrice(),
@@ -164,29 +186,29 @@ fun ProductDetailScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(14.sdp))
 
                     Text(
                         text = "Mô tả",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.sdp))
                     Text(
-                        text = product?.description.orEmpty(),
+                        text = product?.description?.takeIf { it.isNotBlank() }
+                            ?: "Chưa có mô tả cho sản phẩm này.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(18.sdp))
 
-                    // Quantity selector pill
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(999.sdp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 12.sdp, vertical = 10.sdp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -199,7 +221,7 @@ fun ProductDetailScreen(
                         IconButton(
                             onClick = { if (quantity > 1) quantity-- },
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(36.sdp) // Nút - tự động co giãn
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surface)
                         ) {
@@ -210,13 +232,13 @@ fun ProductDetailScreen(
                             text = quantity.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 14.dp)
+                            modifier = Modifier.padding(horizontal = 14.sdp)
                         )
 
                         IconButton(
                             onClick = { quantity++ },
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(36.sdp) // Nút + tự động co giãn
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
                         ) {
@@ -228,12 +250,9 @@ fun ProductDetailScreen(
                         }
                     }
 
-                    // Extra gap so scrolling content doesn't collide with bottomBar
-                    Spacer(modifier = Modifier.height(76.dp))
+                    Spacer(modifier = Modifier.height(76.sdp))
                 }
             }
         }
     }
 }
-
-

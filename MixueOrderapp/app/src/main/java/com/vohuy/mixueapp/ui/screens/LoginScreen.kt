@@ -53,12 +53,12 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.vohuy.mixueapp.ui.components.ToastMessageHandler
 import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.utils.sdp
 
 @Composable
 fun LoginScreen(
@@ -141,10 +141,10 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 24.sdp, vertical = 16.sdp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.sdp))
 
             // Logo hoặc Tiêu đề
             Text(
@@ -154,14 +154,14 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.sdp))
 
             // Tab chọn chế độ
             TabRow(
                 selectedTabIndex = if (isLoginTab) 0 else 1,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier
-                    .height(48.dp)
+                    .height(48.sdp)
                     .fillMaxWidth(),
                 indicator = {} // Tùy chỉnh indicator nếu cần
             ) {
@@ -177,7 +177,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.sdp))
 
             // Field: Họ và tên (Chỉ hiện khi Đăng ký)
             AnimatedVisibility(
@@ -194,7 +194,7 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .focusRequester(nameFocusRequester),
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(16.sdp),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next
@@ -203,7 +203,7 @@ fun LoginScreen(
                 )
             }
 
-            if (!isLoginTab) Spacer(modifier = Modifier.height(12.dp))
+            if (!isLoginTab) Spacer(modifier = Modifier.height(12.sdp))
 
             // Field: Email
             OutlinedTextField(
@@ -215,7 +215,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .focusRequester(emailFocusRequester),
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(16.sdp),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -223,7 +223,7 @@ fun LoginScreen(
                 keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() })
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.sdp))
 
             // Field: Mật khẩu
             OutlinedTextField(
@@ -244,7 +244,7 @@ fun LoginScreen(
                     .focusRequester(passwordFocusRequester),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(16.sdp),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = if (isLoginTab) ImeAction.Done else ImeAction.Next
@@ -261,7 +261,7 @@ fun LoginScreen(
             // Field: Nhập lại mật khẩu
             AnimatedVisibility(visible = !isLoginTab) {
                 Column {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.sdp))
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
@@ -282,7 +282,7 @@ fun LoginScreen(
                             .focusRequester(confirmPasswordFocusRequester),
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(16.sdp),
                         isError = passwordMismatch,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
@@ -298,13 +298,13 @@ fun LoginScreen(
                             "Mật khẩu không khớp",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                            modifier = Modifier.padding(start = 8.sdp, top = 4.sdp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.sdp))
 
             // Nút bấm hành động
             Button(
@@ -323,15 +323,15 @@ fun LoginScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(56.sdp),
+                shape = RoundedCornerShape(16.sdp),
                 enabled = canSubmit
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(24.sdp),
                         color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+                        strokeWidth = 2.sdp
                     )
                 } else {
                     Text(

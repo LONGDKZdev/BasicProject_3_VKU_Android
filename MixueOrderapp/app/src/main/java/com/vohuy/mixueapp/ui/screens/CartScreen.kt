@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,7 +49,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -59,6 +59,7 @@ import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
 import com.vohuy.mixueapp.utils.formatPrice
+import com.vohuy.mixueapp.utils.sdp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,33 +77,27 @@ fun CartScreen(
     val createdOrderId by orderVm.createdOrderId.observeAsState()
     val orderSuccess by orderVm.successMessage.observeAsState()
 
-// Khởi tạo context để dùng cho Toast
     ToastMessageHandler(authVm, orderVm, viewModel)
     val context = LocalContext.current
     val sharedPreferences =
         context.getSharedPreferences("MixuePrefs", android.content.Context.MODE_PRIVATE)
 
-    // Các biến cho form giao hàng
     var showCheckoutDialog by remember { mutableStateOf(false) }
     var phoneInput by remember { mutableStateOf(currentUser?.phoneNumber ?: "") }
     var addressInput by remember {
-        mutableStateOf(
-            sharedPreferences.getString("saved_address", "") ?: ""
-        )
+        mutableStateOf(sharedPreferences.getString("saved_address", "") ?: "")
     }
 
     LaunchedEffect(Unit) {
         authVm.fetchCurrentUser()
     }
 
-    // Ensure current user is fetched (covers cold start)
     LaunchedEffect(currentUser) {
         if (phoneInput.isBlank() && !currentUser?.phoneNumber.isNullOrBlank()) {
             phoneInput = currentUser?.phoneNumber ?: ""
         }
     }
 
-    // On successful checkout -> clear cart and go to order history
     LaunchedEffect(createdOrderId, orderSuccess) {
         if (!createdOrderId.isNullOrBlank()) {
             viewModel.clearCart()
@@ -128,13 +123,14 @@ fun CartScreen(
         bottomBar = {
             if (cartItems.isNotEmpty()) {
                 Surface(
-                    tonalElevation = 6.dp,
-                    shadowElevation = 12.dp,
+                    tonalElevation = 6.sdp,
+                    shadowElevation = 12.sdp,
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .navigationBarsPadding()
+                            .padding(16.sdp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -146,15 +142,18 @@ fun CartScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            // ĐÃ SỬA: Ép cứng giá tiền không bao giờ được xuống hàng
                             Text(
                                 totalPrice.formatPrice(),
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.sdp))
 
                         Button(
                             onClick = {
@@ -162,15 +161,14 @@ fun CartScreen(
                                 if (uid.isNullOrBlank()) {
                                     orderVm.setError("Bạn cần đăng nhập để thanh toán")
                                 } else {
-                                    // Cập nhật SĐT mặc định trước khi bật Dialog
                                     phoneInput = currentUser?.phoneNumber ?: ""
                                     showCheckoutDialog = true
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp)
+                                .height(52.sdp),
+                            shape = RoundedCornerShape(16.sdp)
                         ) {
                             Text(
                                 "Thanh Toán",
@@ -192,21 +190,21 @@ fun CartScreen(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(24.sdp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ShoppingCart,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(72.dp)
+                        modifier = Modifier.size(72.sdp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.sdp))
                     Text(
                         text = "Giỏ hàng của bạn đang trống",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.sdp))
                     Text(
                         text = "Hãy thêm món bạn thích để bắt đầu đặt hàng.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -219,20 +217,22 @@ fun CartScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 96.dp)
+                    .padding(12.sdp),
+                verticalArrangement = Arrangement.spacedBy(10.sdp),
+                contentPadding = PaddingValues(bottom = 96.sdp)
             ) {
-                items(items = cartItems, key = { it.id }) { item ->
-                    CartItemCard(item) { id ->
-                        viewModel.removeFromCart(id)
-                    }
+                items(items = cartItems, key = { item -> item.id }) { item ->
+                    CartItemCard(
+                        item = item,
+                        onDelete = { id ->
+                            viewModel.removeFromCart(id)
+                        }
+                    )
                 }
             }
         }
     }
 
-    // HỘP THOẠI XÁC NHẬN GIAO HÀNG & CHUYỂN KHOẢN
     if (showCheckoutDialog) {
         AlertDialog(
             onDismissRequest = { showCheckoutDialog = false },
@@ -249,7 +249,7 @@ fun CartScreen(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
                         )
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.sdp))
                     OutlinedTextField(
                         value = addressInput,
                         onValueChange = { addressInput = it },
@@ -261,23 +261,22 @@ fun CartScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.sdp))
 
-                    // 🆕 Bảng Hướng Dẫn Chuyển Khoản
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.sdp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(12.sdp)) {
                             Text(
                                 "💳 Hướng Dẫn Chuyển Khoản",
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(6.sdp))
                             Text("Ngân hàng: MB Bank", style = MaterialTheme.typography.bodySmall)
                             Text(
                                 "STK: 1234567890",
@@ -292,9 +291,11 @@ fun CartScreen(
                                 "Số tiền: ${totalPrice.formatPrice()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                softWrap = false
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.sdp))
                             Button(
                                 onClick = {
                                     android.widget.Toast.makeText(
@@ -305,9 +306,7 @@ fun CartScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = androidx.compose.ui.graphics.Color(
-                                        0xFF1976D2
-                                    )
+                                    containerColor = androidx.compose.ui.graphics.Color(0xFF1976D2)
                                 )
                             ) {
                                 Text(
@@ -322,37 +321,26 @@ fun CartScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        // FIX: Lấy UID trực tiếp từ Auth (không bao giờ null nếu đã đăng nhập)
                         val uid = authVm.getCurrentUserId() ?: return@Button
                         val phone = phoneInput.trim()
                         val address = addressInput.trim()
 
-                        // 1. Kiểm tra số điện thoại (phải có ít nhất 10 số)
                         if (phone.length < 10 || !phone.all { it.isDigit() }) {
                             orderVm.setError("Số điện thoại không hợp lệ (ít nhất 10 chữ số)")
                             return@Button
                         }
-
-                        // 2. Kiểm tra địa chỉ (không được nhập quá ngắn)
                         if (address.length < 5) {
                             orderVm.setError("Vui lòng nhập địa chỉ giao hàng cụ thể hơn")
                             return@Button
                         }
 
-                        // 3. Lưu địa chỉ này vào bộ nhớ máy cho lần mua sau
                         sharedPreferences.edit().putString("saved_address", address).apply()
-
-                        // 4. LƯU THÔNG TIN SĐT/ĐỊA CHỈ LÊN FIREBASE (Lần trước bị thiếu)
                         authVm.updateDeliveryInfo(phone, address)
-
-                        // 5. Đóng hộp thoại
                         showCheckoutDialog = false
 
-                        // 6. Chốt đơn chuyển khoản
                         orderVm.createOrder(
                             userId = uid,
                             items = cartItems,
-                            // Đổi dòng gán customerName cũ thành thế này:
                             customerName = currentUser?.fullName?.takeIf { it.isNotBlank() }
                                 ?: "Khách hàng",
                             phoneNumber = phone,
@@ -376,29 +364,27 @@ fun CartScreen(
 fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(12.sdp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.sdp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(12.sdp),
+            horizontalArrangement = Arrangement.spacedBy(12.sdp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product Image
             AsyncImage(
                 model = item.imageUrl,
                 contentDescription = item.productName,
                 modifier = Modifier
-                    .size(76.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(76.sdp)
+                    .clip(RoundedCornerShape(12.sdp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = ContentScale.Crop
             )
 
-            // Product Info
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -409,21 +395,28 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(2.sdp))
+
+                // ĐÃ SỬA: Hạ font xuống labelMedium cho nhỏ gọn
                 Text(
                     "SL: ${item.quantity} x ${item.price.formatPrice()}",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    softWrap = false
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(6.sdp))
+
+                // ĐÃ SỬA: Đổi chữ "Thành tiền" thành "Tổng" và hạ font xuống bodyMedium
                 Text(
-                    "Thành tiền: ${(item.quantity * item.price).formatPrice()}",
-                    style = MaterialTheme.typography.bodyLarge,
+                    "Tổng: ${(item.quantity * item.price).formatPrice()}",
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
 
-            // Delete Button
             IconButton(onClick = { onDelete(item.id) }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")
             }

@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -82,6 +83,7 @@ import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.HomeViewModel
 import com.vohuy.mixueapp.utils.formatPrice
+import com.vohuy.mixueapp.utils.sdp
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -214,6 +216,12 @@ fun HomeScreen(
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Thoát") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.ExitToApp,
+                                            contentDescription = "Thoát"
+                                        )
+                                    },
                                     onClick = {
                                         // Đóng menu
                                         isMenuOpen = false
@@ -459,9 +467,9 @@ fun HomeScreen(
 @Composable
 fun ProductGridCard(product: Product, onClick: () -> Unit) {
     Card(
-        shape = RoundedCornerShape(16.dp), // Bo góc mềm mại
+        shape = RoundedCornerShape(16.sdp), // Đã bóp từ 16.dp -> 16.sdp
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.sdp), // 2.dp -> 2.sdp
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
@@ -477,26 +485,34 @@ fun ProductGridCard(product: Product, onClick: () -> Unit) {
                 contentDescription = product.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f) // Giữ ảnh luôn vuông
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                    .aspectRatio(1f) // Vẫn giữ tỷ lệ vuông 1:1 hoàn hảo
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 16.sdp,
+                            topEnd = 16.sdp
+                        )
+                    ), // 16.dp -> 16.sdp
                 contentScale = ContentScale.Crop
             )
 
             // Thông tin (Tên + Giá)
-            Column(modifier = Modifier.padding(12.dp)) {
+            // Đã giảm padding từ 12.dp xuống 8.sdp để thẻ gọn gàng hơn, không bị lãng phí không gian
+            Column(modifier = Modifier.padding(8.sdp)) {
                 Text(
                     text = product.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    // Đã hạ style từ titleMedium xuống titleSmall (sẽ tự động áp dụng .ssp từ file Type.kt mới)
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.sdp)) // 4.dp -> 4.sdp
 
                 Text(
                     text = product.price.formatPrice(),
-                    style = MaterialTheme.typography.bodyLarge,
+                    // Đã hạ style từ bodyLarge xuống bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary, // Giá màu đỏ nổi bật
                     fontWeight = FontWeight.Bold
                 )

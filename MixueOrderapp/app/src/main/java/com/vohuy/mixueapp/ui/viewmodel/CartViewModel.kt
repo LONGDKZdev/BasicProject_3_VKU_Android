@@ -51,10 +51,11 @@ class CartViewModel : BaseViewModel() {
     /**
      * Xóa sản phẩm khỏi giỏ
      */
+// Trong CartViewModel.kt, sửa hàm removeItem:
     fun removeItem(productId: String) {
         val currentItems = _cartItems.value ?: mutableListOf()
-        currentItems.removeAll { it.productId == productId }
-        _cartItems.value = ArrayList(currentItems)
+        val newList = currentItems.filter { it.productId != productId }.toMutableList()
+        _cartItems.value = newList
         updateTotalPrice()
     }
 
