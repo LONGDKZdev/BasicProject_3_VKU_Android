@@ -45,7 +45,10 @@ class OrderViewModel : BaseViewModel() {
         customerName: String = "",
         phoneNumber: String = "",
         address: String = "",
-        paymentMethod: String = Constants.PAYMENT_METHOD_BANK_TRANSFER
+        paymentMethod: String = Constants.PAYMENT_METHOD_BANK_TRANSFER,
+        discountCode: String = "",
+        discountAmount: Double = 0.0,
+        customerNote: String = ""
     ) {
         // 1. KIỂM TRA CHỐNG SPAM (Dùng luôn danh sách đã tải trong ViewModel)
         val currentOrders = orders.value ?: emptyList()
@@ -68,7 +71,9 @@ class OrderViewModel : BaseViewModel() {
 
         setLoading(true)
 
-        val calculatedTotal = items.sumOf { it.getTotalPrice() }
+        val calculatedSubtotal = items.sumOf { it.getTotalPrice() }
+        val normalizedDiscount = discountAmount.coerceIn(0.0, calculatedSubtotal)
+        val calculatedTotal = (calculatedSubtotal - normalizedDiscount).coerceAtLeast(0.0)
 
         val order = Order(
             userId = userId,
@@ -78,7 +83,11 @@ class OrderViewModel : BaseViewModel() {
             paymentMethod = normalizedPaymentMethod,
             items = items,
             status = Constants.ORDER_STATUS_PENDING,
-            totalPrice = calculatedTotal
+            totalPrice = calculatedTotal,
+            subtotalPrice = calculatedSubtotal,
+            discountCode = discountCode,
+            discountAmount = normalizedDiscount,
+            customerNote = customerNote
         )
 
         repository.createOrder(order).observeForever { result ->

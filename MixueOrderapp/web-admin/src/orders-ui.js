@@ -43,7 +43,7 @@ export function initOrdersTab() {
   const btnReloadOrders = document.getElementById("btnReloadOrders");
   if (btnReloadOrders) {
     btnReloadOrders.onclick = () => {
-      console.log("🔄 Reloading all orders...");
+      console.log("🔄 Đang tải lại tất cả đơn hàng...");
       listenOrders(100, (orders) => {
         renderAllOrdersTable(allOrdersTable, orders);
       });
@@ -250,13 +250,9 @@ window.rejectOrderFn = async (id) => {
  */
 window.printInvoiceFn = async function (orderId) {
   try {
-    const invoicePath = 'invoice.html?orderId=' + orderId;
+    const invoicePath = 'invoice.html?orderId=' + orderId + '&print=1';
     const printWindow = window.open(invoicePath, "printWindow");
-    if (printWindow) {
-      printWindow.addEventListener("load", () => {
-        printWindow.print();
-      });
-    }
+    if (!printWindow) showError("❌ Trình duyệt đang chặn cửa sổ in hóa đơn.");
   } catch (error) {
     showError("❌ Lỗi in: " + error.message);
   }

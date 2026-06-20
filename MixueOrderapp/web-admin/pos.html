@@ -4,107 +4,455 @@
     <link href="./assets/Img/LogoEmployee_SaleUI.png" rel="icon" type="image/png">
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>POS Tại Quầy - Mixue Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+    <title>Bán Hàng Tại Quầy - Mixue Quản Trị</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f4f6f9; font-family: system-ui, -apple-system, sans-serif; }
-        .product-card { cursor: pointer; transition: transform 0.2s; border: none; border-radius: 12px; }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .cart-container { height: calc(100vh - 80px); display: flex; flex-direction: column; border-radius: 12px; border: none;}
-        .cart-items { flex-grow: 1; overflow-y: auto; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        :root {
+            --mixue-red: #e60012;
+            --mixue-red-dark: #c70010;
+            --bg: #f4f6f8;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .pos-topbar {
+            background: var(--mixue-red);
+            box-shadow: 0 8px 24px rgba(230, 0, 18, 0.18);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .pos-shell {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: minmax(0, 1fr) 390px;
+            min-height: calc(100vh - 76px);
+            padding: 18px;
+        }
+
+        .work-panel,
+        .cart-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .work-panel {
+            min-width: 0;
+            padding: 18px;
+        }
+
+        .pos-toolbar {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: minmax(260px, 1fr) auto;
+            margin-bottom: 14px;
+        }
+
+        .search-box {
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            gap: 10px;
+            padding: 0 14px;
+        }
+
+        .search-box input {
+            border: 0;
+            box-shadow: none !important;
+            height: 48px;
+            outline: 0;
+        }
+
+        .shift-stats {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(3, minmax(120px, 1fr));
+            margin-bottom: 14px;
+        }
+
+        .shift-stat {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--mixue-red);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .shift-stat span {
+            color: var(--muted);
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .shift-stat strong {
+            color: var(--mixue-red);
+            font-size: 18px;
+        }
+
+        .category-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            white-space: nowrap;
+        }
+
+        .category-strip .btn {
+            border-radius: 999px;
+            font-weight: 700;
+            padding-inline: 18px;
+        }
+
+        .product-grid {
+            align-content: start;
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            margin-top: 4px;
+        }
+
+        .product-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+
+        .product-card:hover {
+            border-color: rgba(230, 0, 18, 0.35);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .product-card img {
+            aspect-ratio: 4 / 3;
+            height: auto;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .product-body {
+            padding: 12px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 800;
+            min-height: 38px;
+        }
+
+        .product-meta {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .category-badge {
+            background: #fee2e2;
+            border-radius: 999px;
+            color: var(--mixue-red);
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 8px;
+        }
+
+        .cart-panel {
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 112px);
+            overflow: hidden;
+            position: sticky;
+            top: 94px;
+        }
+
+        .cart-header {
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+        }
+
+        .cart-line {
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 1fr auto;
+            margin-bottom: 10px;
+            padding: 12px;
+        }
+
+        .qty-box {
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            display: flex;
+            gap: 8px;
+            padding: 4px;
+        }
+
+        .qty-box button {
+            align-items: center;
+            border-radius: 999px;
+            display: inline-flex;
+            height: 28px;
+            justify-content: center;
+            padding: 0;
+            width: 28px;
+        }
+
+        .cart-footer {
+            border-top: 1px solid var(--border);
+            padding: 16px;
+        }
+
+        .payment-choice {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .payment-choice input {
+            display: none;
+        }
+
+        .payment-choice label {
+            align-items: center;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            font-weight: 800;
+            gap: 8px;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .payment-choice input:checked + label {
+            background: #fee2e2;
+            border-color: var(--mixue-red);
+            color: var(--mixue-red);
+        }
+
+        .promo-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .summary-line {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .total-row {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .empty-state {
+            color: var(--muted);
+            padding: 42px 16px;
+            text-align: center;
+        }
+
+        .empty-state i {
+            color: var(--mixue-red);
+            display: block;
+            font-size: 42px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1040px) {
+            .pos-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-panel {
+                max-height: none;
+                position: static;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .pos-shell { padding: 10px; }
+            .pos-toolbar { grid-template-columns: 1fr; }
+            .shift-stats { grid-template-columns: 1fr; }
+            .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-danger shadow-sm">
+<nav class="navbar navbar-dark pos-topbar">
     <div class="container-fluid px-4">
-        <span class="navbar-brand mb-0 h1 fw-bold"><i class='bx bx-store-alt'></i> Mixue Bán Hàng Tại Quầy</span>
-        <a class="btn btn-light btn-sm fw-bold" href="index.html"><i class='bx bx-arrow-back'></i>
-            Quay lại Admin</a>
+        <div>
+            <span class="navbar-brand mb-0 h1 fw-bold"><i class='bx bx-store-alt'></i> Mixue POS Tại Quầy</span>
+            <div class="small opacity-75">Lên đơn nhanh, thu tiền mặt và in hóa đơn</div>
+        </div>
+        <a class="btn btn-light btn-sm fw-bold" href="index.html">
+            <i class='bx bx-arrow-back'></i> Quay lại quản trị
+        </a>
     </div>
 </nav>
 
-<div class="container-fluid p-3">
-    <div class="row g-3">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0"
-                 style="border-radius: 12px; min-height: calc(100vh - 80px);">
-                <div class="card-body">
-                    <div class="input-group mb-4 shadow-sm">
-                        <span class="input-group-text bg-white border-end-0"><i
-                                class='bx bx-search text-muted'></i></span>
-                        <input class="form-control border-start-0 ps-0" id="posSearch"
-                               placeholder="Tìm kiếm món ăn nhanh..."
-                               type="text">
-                    </div>
+<main class="pos-shell">
+    <section class="work-panel">
+        <div class="pos-toolbar">
+            <div class="search-box">
+                <i class='bx bx-search text-muted fs-5'></i>
+                <input class="form-control" id="posSearch" placeholder="Tìm món theo tên..." type="text">
+            </div>
+            <button class="btn btn-outline-danger fw-bold" id="posReloadBtn" type="button">
+                <i class='bx bx-refresh'></i> Tải lại món
+            </button>
+        </div>
 
-                    <div class="d-flex gap-2 overflow-auto mb-4 pb-2" id="posCategoryPills"
-                         style="white-space: nowrap;">
-                        <button class="btn btn-danger rounded-pill px-4" data-cat="all">Tất cả
-                        </button>
-                        <button class="btn btn-outline-secondary rounded-pill px-4"
-                                data-cat="Trà sữa">Trà sữa
-                        </button>
-                        <button class="btn btn-outline-secondary rounded-pill px-4"
-                                data-cat="Trà trái cây">Trà trái cây
-                        </button>
-                        <button class="btn btn-outline-secondary rounded-pill px-4" data-cat="Kem">
-                            Kem
-                        </button>
-                        <button class="btn btn-outline-secondary rounded-pill px-4"
-                                data-cat="Cà phê">Cà phê
-                        </button>
-                    </div>
-                    <div class="row g-3" id="posProductGrid">
-                        <div class="text-center text-muted mt-5"><span
-                                class="spinner-border spinner-border-sm"></span> Đang tải dữ liệu...
-                        </div>
-                    </div>
-                </div>
+        <div class="shift-stats">
+            <div class="shift-stat">
+                <span>SỐ MÓN ĐANG BÁN</span>
+                <strong id="posProductCount">0</strong>
+            </div>
+            <div class="shift-stat">
+                <span>MÓN TRONG GIỎ</span>
+                <strong id="posItemCount">0</strong>
+            </div>
+            <div class="shift-stat">
+                <span>TỔNG TẠM TÍNH</span>
+                <strong id="posQuickTotal">0 ₫</strong>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card shadow-sm cart-container">
-                <div class="card-header bg-white py-3 border-bottom-0">
-                    <h5 class="mb-0 fw-bold"><i class='bx bx-basket text-danger'></i> Đơn Hàng Lấy
-                        Ngay</h5>
-                </div>
-                <div class="card-body cart-items p-3" id="posCartList">
-                    <div class="text-center text-muted mt-5">Giỏ hàng trống</div>
-                </div>
+        <div class="category-strip" id="posCategoryPills">
+            <button class="btn btn-danger" data-cat="all">Tất cả</button>
+            <button class="btn btn-outline-secondary" data-cat="Kem">Kem</button>
+            <button class="btn btn-outline-secondary" data-cat="Trà sữa">Trà sữa</button>
+            <button class="btn btn-outline-secondary" data-cat="Trà trái cây">Trà trái cây</button>
+            <button class="btn btn-outline-secondary" data-cat="Cà phê">Cà phê</button>
+            <button class="btn btn-outline-secondary" data-cat="Nước">Nước</button>
+            <button class="btn btn-outline-secondary" data-cat="Khác">Khác</button>
+        </div>
 
-                <div class="card-footer bg-white border-top-0 p-3 shadow-lg"
-                     style="border-radius: 0 0 12px 12px;">
-                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                        <span class="fw-bold fs-5 text-secondary">Tổng thanh toán:</span>
-                        <span class="fw-bold text-danger fs-4" id="posTotal">0 ₫</span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary mb-1">Tên khách hàng
-                            (Tùy chọn)</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light"><i
-                                    class='bx bx-user'></i></span>
-                            <input class="form-control" id="posCustomerName"
-                                   placeholder="Khách vãng lai"
-                                   type="text">
-                        </div>
-                    </div>
-
-                    <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm"
-                            disabled id="posCheckoutBtn">
-                        <i class='bx bx-dollar-circle'></i> Thanh toán
-                    </button>
-                </div>
+        <div class="product-grid" id="posProductGrid">
+            <div class="empty-state">
+                <span class="spinner-border spinner-border-sm"></span> Đang tải dữ liệu...
             </div>
         </div>
-    </div>
-</div>
+    </section>
+
+    <aside class="cart-panel">
+        <div class="cart-header">
+            <div>
+                <h5 class="mb-0 fw-bold"><i class='bx bx-basket text-danger'></i> Đơn Tại Quầy</h5>
+                <div class="small text-muted">Thanh toán tiền mặt, in hóa đơn sau khi lưu đơn</div>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" id="posClearCartBtn" type="button">
+                Xóa giỏ
+            </button>
+        </div>
+
+        <div class="cart-items" id="posCartList">
+            <div class="empty-state">
+                <i class='bx bx-cart'></i>
+                Giỏ hàng trống
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Tên khách hàng</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class='bx bx-user'></i></span>
+                    <input class="form-control" id="posCustomerName" placeholder="Khách vãng lai" type="text">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Ghi chú đơn</label>
+                <textarea class="form-control" id="posOrderNote" placeholder="Ví dụ: khách lấy ngay, ít đá..." rows="2"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Phương thức thanh toán</label>
+                <div class="payment-choice">
+                    <div>
+                        <input checked id="payCash" name="posPaymentMethod" type="radio" value="CASH">
+                        <label for="payCash"><i class='bx bx-money'></i> Tiền mặt</label>
+                    </div>
+                    <div>
+                        <input id="payTransfer" name="posPaymentMethod" type="radio" value="BANK_TRANSFER">
+                        <label for="payTransfer"><i class='bx bx-qr'></i> Chuyển khoản</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="promo-box mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Mã giảm giá</label>
+                <div class="input-group">
+                    <input class="form-control" id="posVoucherCode" placeholder="VD: MIXUE10" type="text">
+                    <button class="btn btn-outline-danger fw-bold" id="posApplyVoucherBtn" type="button">Áp dụng</button>
+                </div>
+                <div class="small mt-2" id="posVoucherStatus"></div>
+                <button class="btn btn-sm btn-link text-danger px-0 d-none" id="posClearVoucherBtn" type="button">Bỏ mã giảm giá</button>
+            </div>
+
+            <div class="summary-line small text-secondary">
+                <span>Tạm tính</span>
+                <strong id="posSubtotal">0 ₫</strong>
+            </div>
+            <div class="summary-line small text-secondary">
+                <span>Giảm giá</span>
+                <strong id="posDiscount">0 ₫</strong>
+            </div>
+
+            <div class="total-row border-top pt-3">
+                <span class="fw-bold text-secondary">Tổng thanh toán</span>
+                <span class="fw-bold text-danger fs-3" id="posTotal">0 ₫</span>
+            </div>
+
+            <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm" disabled id="posCheckoutBtn">
+                <i class='bx bx-dollar-circle'></i> Lưu đơn & in hóa đơn
+            </button>
+        </div>
+    </aside>
+</main>
 
 <script src="./src/pos-logic.js" type="module"></script>
 </body>

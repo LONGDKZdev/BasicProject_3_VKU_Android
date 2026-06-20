@@ -4,7 +4,7 @@
     <link href="./assets/Img/LogoEmployee_SaleUI.png" rel="icon" type="image/png">
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
-    <title>Mixue Admin</title>
+    <title>Mixue Quản Trị</title>
     <link href="./assets/styles.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
@@ -19,8 +19,8 @@
 <body>
 <header class="app-header">
     <div class="brand">
-        <div class="brand__title">Mixue Admin</div>
-        <div class="brand__sub">Admin console (Firebase Firestore)</div>
+        <div class="brand__title">Mixue Quản Trị</div>
+        <div class="brand__sub">Bảng quản trị dữ liệu Firebase Firestore</div>
     </div>
 
     <div class="userbar">
@@ -33,7 +33,7 @@
     <section class="card" id="cardLogin">
         <h2>Xác thực Admin</h2>
         <p class="muted">
-            Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên web-admin, tài khoản sẽ được
+            Đăng nhập hoặc đăng ký tài khoản quản trị. Khi đăng ký trên trang quản trị, tài khoản sẽ được
             gán quyền <b>ADMIN</b>
             tự động.
         </p>
@@ -83,50 +83,52 @@
             -->
             <div class="kv__k">Email</div>
             <div class="kv__v" id="kvEmail">-</div>
-            <div class="kv__k">Role</div>
+            <div class="kv__k">Quyền</div>
             <div class="kv__v"><span class="pill" id="kvRole">-</span></div>
         </div>
     </section>
 
 
     <section class="card hidden" id="cardAdmin">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 style="margin: 0;">Bảng Điều Khiển</h2>
-            <a class="btn" href="pos.html"
-               style="background-color: #E63946; color: white; text-decoration: none; font-weight: bold; border: none; border-radius: 8px;">
-                🎧 Mở Giao Diện POS (Lên Đơn)
+        <div class="admin-heading">
+            <div>
+                <h2 style="margin: 0;">Bảng Điều Khiển</h2>
+                <div class="muted small">Theo dõi bán hàng, đơn app và thao tác tại quầy trong một nơi.</div>
+            </div>
+            <a class="btn btn--pos" href="pos.html">
+                <i class='bx bx-store-alt'></i> Mở POS Lên Đơn
             </a>
         </div>
         <div class="dashboard-grid"
              style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid var(--primary);">
+            <div class="metric-card metric-card--revenue">
                 <div class="muted small font-bold">TỔNG DOANH THU</div>
                 <div id="statRevenue"
                      style="font-size: 24px; font-weight: bold; color: var(--primary); margin-top: 8px;">
                     0 ₫
                 </div>
             </div>
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #9C27B0;">
+            <div class="metric-card metric-card--cash">
                 <div class="muted small font-bold">POS (Tiền Mặt)</div>
                 <div id="statCash"
                      style="font-size: 24px; font-weight: bold; color: #9C27B0; margin-top: 8px;">0
                     ₫
                 </div>
             </div>
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #2196F3;">
+            <div class="metric-card metric-card--transfer">
                 <div class="muted small font-bold">APP (Chuyển Khoản)</div>
                 <div id="statTransfer"
                      style="font-size: 24px; font-weight: bold; color: #2196F3; margin-top: 8px;">0
                     ₫
                 </div>
             </div>
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #4CAF50;">
+            <div class="metric-card metric-card--done">
                 <div class="muted small font-bold">ĐƠN HOÀN THÀNH</div>
                 <div id="statSuccessOrders"
                      style="font-size: 24px; font-weight: bold; color: #4CAF50; margin-top: 8px;">0
                 </div>
             </div>
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #F44336;">
+            <div class="metric-card metric-card--cancel">
                 <div class="muted small font-bold">ĐƠN ĐÃ HỦY</div>
                 <div id="statCancelledOrders"
                      style="font-size: 24px; font-weight: bold; color: #F44336; margin-top: 8px;">0
@@ -137,6 +139,8 @@
             <button class="tab admin-tab tab--active" data-tab="products">🍔 Thực Đơn</button>
             <button class="tab admin-tab" data-tab="orders">📦 Đơn Hàng</button>
             <button class="tab admin-tab" data-tab="payments">💳 Giao Dịch</button>
+            <button class="tab admin-tab" data-tab="reviews">⭐ Đánh Giá</button>
+            <button class="tab admin-tab" data-tab="vouchers">🎟️ Mã Giảm Giá</button>
             <button class="tab admin-tab" data-tab="revenue">📈 Doanh Thu</button>
             <button class="tab admin-tab" data-tab="approvals" onclick="window.loadApprovals()">👤
                 Duyệt Admin
@@ -171,10 +175,11 @@
                     Danh Mục
                     <select id="p_category" required>
                         <option value="">-- Chọn danh mục --</option>
+                        <option value="Kem">Kem</option>
                         <option value="Trà sữa">Trà sữa</option>
                         <option value="Trà trái cây">Trà trái cây</option>
-                        <option value="Kem">Kem</option>
                         <option value="Cà phê">Cà phê</option>
+                        <option value="Nước">Nước</option>
                         <option value="Khác">Khác</option>
                     </select>
                 </label>
@@ -185,8 +190,8 @@
                 <label>
                     Trạng Thái Bán
                     <select id="p_available">
-                        <option selected value="true">Đang bán (True)</option>
-                        <option value="false">Tạm hết (False)</option>
+                        <option selected value="true">Đang bán</option>
+                        <option value="false">Tạm hết</option>
                     </select>
                 </label>
                 <label class="span2">
@@ -197,7 +202,7 @@
                 <label class="span2">
                     Tải Ảnh Lên (Supabase)
                     <input accept="image/*" id="p_imageFile" type="file"/>
-                    <span class="muted small">Chọn ảnh → Bấm Upload → Hệ thống tự động điền URL vào ô trên.</span>
+                    <span class="muted small">Chọn ảnh → bấm Tải Ảnh Lên → hệ thống tự động điền đường dẫn vào ô trên.</span>
                 </label>
                 <div class="row span2">
                     <button class="btn btn--ghost" id="btnUploadImage" type="button">Tải Ảnh Lên
@@ -248,7 +253,7 @@
                 <table class="table" id="ordersTable">
                     <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Mã</th>
                         <th>Khách hàng</th>
                         <th>Số tiền</th>
                         <th>Trạng thái</th>
@@ -282,6 +287,95 @@
                         <th>Phương Thức</th>
                         <th>Trạng Thái</th>
                         <th>Thời Gian</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabpane hidden" id="tab-reviews">
+            <div class="row row--space">
+                <div>
+                    <div class="muted">Cơ sở dữ liệu: <code>productReviews</code></div>
+                </div>
+                <div class="row">
+                    <button class="btn" id="btnReloadReviews">Tải Lại</button>
+                </div>
+            </div>
+
+            <div class="tablewrap">
+                <table class="table" id="reviewsTable">
+                    <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th>Người dùng</th>
+                        <th>Sao</th>
+                        <th>Bình luận</th>
+                        <th>Thời gian</th>
+                        <th>Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabpane hidden" id="tab-vouchers">
+            <div class="row row--space">
+                <div>
+                    <div class="muted">Cơ sở dữ liệu: <code>vouchers</code></div>
+                </div>
+                <div class="row">
+                    <button class="btn" id="btnReloadVouchers">Tải Lại</button>
+                </div>
+            </div>
+
+            <form class="form form--grid" id="voucherForm">
+                <label>
+                    Mã giảm giá
+                    <input id="v_code" placeholder="VD: MIXUE10" required/>
+                </label>
+                <label>
+                    Tên chương trình
+                    <input id="v_title" placeholder="Giảm 10% đơn đầu tiên"/>
+                </label>
+                <label>
+                    Giảm theo %
+                    <input id="v_percent" min="0" max="100" step="1" type="number" value="0"/>
+                </label>
+                <label>
+                    Giảm tiền mặt (VNĐ)
+                    <input id="v_amount" min="0" step="1000" type="number" value="0"/>
+                </label>
+                <label>
+                    Đơn tối thiểu (VNĐ)
+                    <input id="v_min" min="0" step="1000" type="number" value="0"/>
+                </label>
+                <label>
+                    Trạng thái
+                    <select id="v_active">
+                        <option selected value="true">Đang bật</option>
+                        <option value="false">Tạm tắt</option>
+                    </select>
+                </label>
+                <div class="row span2">
+                    <button class="btn" id="btnSaveVoucher" type="submit">Lưu Mã Giảm Giá</button>
+                    <button class="btn btn--ghost" id="btnResetVoucher" type="button">Làm Mới Form</button>
+                </div>
+            </form>
+
+            <div class="tablewrap" style="margin-top: 24px;">
+                <table class="table" id="vouchersTable">
+                    <thead>
+                    <tr>
+                        <th>Mã</th>
+                        <th>Tên</th>
+                        <th>Giảm %</th>
+                        <th>Giảm tiền</th>
+                        <th>Đơn tối thiểu</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
                     </tr>
                     </thead>
                     <tbody></tbody>
@@ -327,6 +421,7 @@
 <!--    <footer class="app-footer">-->
 <!--      <div class="muted small">Serve bằng HTTP (localhost). Dữ liệu đồng bộ trực tiếp với Firebase Firestore.</div>-->
 <!--    </footer>-->
+
 <script src="./src/admin-approvals.js" type="module"></script>
 <script src="./src/main.js" type="module"></script>
 </body>

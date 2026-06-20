@@ -43,7 +43,13 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             val cartVm: CartViewModel = viewModel(parentEntry)
             CartScreen(navController, cartVm)
         }
-        composable(Routes.ORDER_HISTORY) { OrderHistoryScreen(navController) }
+        composable(Routes.ORDER_HISTORY) {
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                navController.getBackStackEntry(Routes.HOME)
+            }
+            val cartVm: CartViewModel = viewModel(parentEntry)
+            OrderHistoryScreen(navController, cartViewModel = cartVm)
+        }
         
         composable(Routes.ACCOUNT_MANAGEMENT) { AccountManagementScreen(navController, authVm) }
         composable(Routes.SETTINGS) { SettingsScreen(navController) }

@@ -22,7 +22,7 @@ export const ordersService = {
   },
 
   async setOrderStatus(orderId, status) {
-    if (!orderId) throw new Error("OrderId is required");
+    if (!orderId) throw new Error("Thiếu mã đơn hàng");
     await updateDoc(doc(db, COLLECTIONS.orders, orderId), { status });
   },
 };

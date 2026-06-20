@@ -43,6 +43,8 @@ export const db = getFirestore(app);
 export const COLLECTIONS = {
   users: "users",
   products: "products",
+  productReviews: "productReviews",
+  vouchers: "vouchers",
   orders: "orders",
   transactions: "transactions",
   healthcheck: "healthcheck",

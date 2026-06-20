@@ -17,6 +17,10 @@ data class Order(
     val items: List<OrderItem> = emptyList(),
     val status: String = "PENDING",
     val totalPrice: Double = 0.0,
+    val discountCode: String = "",
+    val discountAmount: Double = 0.0,
+    val subtotalPrice: Double = 0.0,
+    val customerNote: String = "",
     val createdAt: Long = System.currentTimeMillis()
 ) {
     val orderDate: String

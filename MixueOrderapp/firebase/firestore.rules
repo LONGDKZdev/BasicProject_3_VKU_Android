@@ -20,11 +20,52 @@ service cloud.firestore {
     // Products: readable to everyone; admin-only write
     match /products/{productId} {
       allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'ratingAverage',
+            'ratingCount',
+            'ratingSum',
+            'ratingUpdatedAt'
+          ])
+        );
+    }
+
+    // Product reviews: everyone can read; signed-in users manage their own review.
+    match /productReviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.productId == resource.data.productId
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow delete: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Vouchers: readable by the app; admin-only write.
+    match /vouchers/{voucherId} {
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
     // Orders: user can create & read own orders; admin can read/update all
     match /orders/{orderId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Transactions: app creates the user's payment record; admin manages reconciliation.
+    match /transactions/{transactionId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();

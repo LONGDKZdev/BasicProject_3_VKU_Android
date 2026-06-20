@@ -45,7 +45,7 @@ object FirestoreSampleDataSeeder {
             description = "Dữ liệu mẫu (seed) từ app",
             price = 20000.0,
             imageUrl = "https://picsum.photos/seed/nuoccam/600/400",
-            category = Constants.CATEGORY_DRINK,
+            category = Constants.CATEGORY_FRUIT_TEA,
             available = true,
         ),
     )

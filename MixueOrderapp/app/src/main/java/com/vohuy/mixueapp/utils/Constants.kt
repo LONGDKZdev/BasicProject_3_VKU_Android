@@ -13,6 +13,8 @@ object Constants {
     const val COLLECTION_PRODUCTS = "products"
     const val COLLECTION_ORDERS = "orders"
     const val COLLECTION_TRANSACTIONS = "transactions"
+    const val COLLECTION_PRODUCT_REVIEWS = "productReviews"
+    const val COLLECTION_VOUCHERS = "vouchers"
 
     // ========== USER FIELDS ==========
     const val FIELD_USER_ID = "id"
@@ -30,8 +32,22 @@ object Constants {
     const val FIELD_PRODUCT_IMAGE_URL = "imageUrl"
     const val FIELD_PRODUCT_CATEGORY = "category"
     const val FIELD_PRODUCT_AVAILABLE = "available"
+    const val FIELD_PRODUCT_RATING_AVERAGE = "ratingAverage"
+    const val FIELD_PRODUCT_RATING_COUNT = "ratingCount"
+    const val FIELD_PRODUCT_RATING_SUM = "ratingSum"
+    const val FIELD_PRODUCT_RATING_UPDATED_AT = "ratingUpdatedAt"
     const val FIELD_PRODUCT_CREATED_AT = "createdAt"
     const val FIELD_PRODUCT_UPDATED_AT = "updatedAt"
+
+    // ========== PRODUCT REVIEW FIELDS ==========
+    const val FIELD_REVIEW_PRODUCT_ID = "productId"
+    const val FIELD_REVIEW_USER_ID = "userId"
+    const val FIELD_REVIEW_RATING = "rating"
+    const val FIELD_REVIEW_UPDATED_AT = "updatedAt"
+
+    // ========== VOUCHER FIELDS ==========
+    const val FIELD_VOUCHER_CODE = "code"
+    const val FIELD_VOUCHER_ACTIVE = "active"
 
     // ========== ORDER FIELDS ==========
     const val FIELD_ORDER_ID = "id"
@@ -94,8 +110,20 @@ object Constants {
 
     // ========== PRODUCT CATEGORIES ==========
     const val CATEGORY_ICE_CREAM = "Kem"
-    const val CATEGORY_TEA = "Trà Sữa"
+    const val CATEGORY_TEA = "Trà sữa"
+    const val CATEGORY_FRUIT_TEA = "Trà trái cây"
+    const val CATEGORY_COFFEE = "Cà phê"
     const val CATEGORY_DRINK = "Nước"
+    const val CATEGORY_OTHER = "Khác"
+
+    val PRODUCT_CATEGORIES = listOf(
+        CATEGORY_ICE_CREAM,
+        CATEGORY_TEA,
+        CATEGORY_FRUIT_TEA,
+        CATEGORY_COFFEE,
+        CATEGORY_DRINK,
+        CATEGORY_OTHER
+    )
 
     // ========== VALIDATION ==========
     const val MIN_PASSWORD_LENGTH = 6

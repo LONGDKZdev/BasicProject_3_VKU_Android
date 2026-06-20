@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +54,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.vohuy.mixueapp.data.model.Order
+import com.vohuy.mixueapp.data.model.OrderItem
 import com.vohuy.mixueapp.ui.components.ToastMessageHandler
+import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
+import com.vohuy.mixueapp.ui.viewmodel.CartViewModel
 import com.vohuy.mixueapp.ui.viewmodel.OrderViewModel
 import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.formatPrice
@@ -65,9 +69,11 @@ import com.vohuy.mixueapp.utils.ssp
 @Composable
 fun OrderHistoryScreen(
     navController: NavController,
-    viewModel: OrderViewModel? = null
+    viewModel: OrderViewModel? = null,
+    cartViewModel: CartViewModel? = null
 ) {
     val vm = viewModel ?: viewModel<OrderViewModel>()
+    val cartVm = cartViewModel ?: viewModel<CartViewModel>()
     val orders by vm.orders.observeAsState(emptyList())
     val isLoading by vm.isLoading.observeAsState(false)
 
@@ -111,7 +117,7 @@ fun OrderHistoryScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Quay lại"
                         )
                     }
                 }
@@ -174,7 +180,13 @@ fun OrderHistoryScreen(
                             )
                         }
                         items(historyOrders) { order ->
-                            OrderCard(order)
+                            OrderCard(
+                                order = order,
+                                onReorderClick = {
+                                    cartVm.addOrderItems(order.items)
+                                    navController.navigate(Routes.CART)
+                                }
+                            )
                         }
                     }
                     item { Spacer(modifier = Modifier.height(16.sdp)) }
@@ -191,7 +203,7 @@ fun OrderHistoryScreen(
 }
 
 @Composable
-fun OrderCard(order: Order) {
+fun OrderCard(order: Order, onReorderClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.sdp),
@@ -250,9 +262,25 @@ fun OrderCard(order: Order) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.DarkGray
                 )
+                if (order.customerNote.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.sdp))
+                    Text(
+                        text = "Ghi chú: ${order.customerNote}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.DarkGray
+                    )
+                }
             }
 
+            OrderItemsSummary(order.items)
+            DiscountSummary(order)
+            Spacer(modifier = Modifier.height(10.sdp))
             OrderProgressBar(currentStatus = order.status)
+
+            Spacer(modifier = Modifier.height(10.sdp))
+            TextButton(onClick = onReorderClick, modifier = Modifier.align(Alignment.End)) {
+                Text("Đặt lại món")
+            }
         }
     }
 }
@@ -322,6 +350,10 @@ fun PendingOrderCard(order: Order, onCancelClick: (String) -> Unit) {
                     color = Color.DarkGray
                 )
             }
+
+            OrderItemsSummary(order.items)
+            DiscountSummary(order)
+            Spacer(modifier = Modifier.height(10.sdp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -436,5 +468,66 @@ fun OrderProgressBar(currentStatus: String) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun OrderItemsSummary(items: List<OrderItem>) {
+    if (items.isEmpty()) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.sdp),
+        verticalArrangement = Arrangement.spacedBy(4.sdp)
+    ) {
+        items.take(3).forEach { item ->
+            val options = item.getCustomizationSummary()
+            Text(
+                text = "${item.quantity}x ${item.productName}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (options.isNotBlank()) {
+                Text(
+                    text = options,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        if (items.size > 3) {
+            Text(
+                "+${items.size - 3} món khác",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiscountSummary(order: Order) {
+    if (order.discountAmount <= 0.0) return
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "Mã giảm ${order.discountCode}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "-${order.discountAmount.formatPrice()}",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }

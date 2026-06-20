@@ -92,7 +92,7 @@ export async function seedProducts(logger) {
       name: "Trà sữa trân châu",
       description: "Trà sữa + trân châu",
       price: 30000,
-      category: "Trà Sữa",
+      category: "Trà sữa",
       imageUrl: "https://placehold.co/600x400/png",
       available: true,
       createdAt: serverTimestamp(),

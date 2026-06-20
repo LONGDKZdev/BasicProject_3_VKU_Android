@@ -68,7 +68,10 @@ fun CartScreen(
     viewModel: CartViewModel = viewModel()
 ) {
     val cartItems by viewModel.cartItems.observeAsState(emptyList())
+    val subtotalPrice by viewModel.subtotalPrice.observeAsState(0.0)
+    val discountAmount by viewModel.discountAmount.observeAsState(0.0)
     val totalPrice by viewModel.totalPrice.observeAsState(0.0)
+    val appliedVoucher by viewModel.appliedVoucher.observeAsState()
 
     val authVm: AuthViewModel = viewModel()
     val orderVm: OrderViewModel = viewModel()
@@ -83,6 +86,8 @@ fun CartScreen(
         context.getSharedPreferences("MixuePrefs", android.content.Context.MODE_PRIVATE)
 
     var showCheckoutDialog by remember { mutableStateOf(false) }
+    var voucherInput by remember { mutableStateOf("") }
+    var orderNoteInput by remember { mutableStateOf("") }
     var phoneInput by remember { mutableStateOf(currentUser?.phoneNumber ?: "") }
     var addressInput by remember {
         mutableStateOf(sharedPreferences.getString("saved_address", "") ?: "")
@@ -114,7 +119,7 @@ fun CartScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Quay lại"
                         )
                     }
                 }
@@ -132,26 +137,15 @@ fun CartScreen(
                             .navigationBarsPadding()
                             .padding(16.sdp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Tổng cộng",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            // ĐÃ SỬA: Ép cứng giá tiền không bao giờ được xuống hàng
-                            Text(
-                                totalPrice.formatPrice(),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                                softWrap = false
-                            )
+                        PriceRow("Tạm tính", subtotalPrice.formatPrice())
+                        if (discountAmount > 0.0) {
+                            PriceRow("Giảm giá", "-${discountAmount.formatPrice()}")
                         }
+                        PriceRow(
+                            label = "Tổng cộng",
+                            value = totalPrice.formatPrice(),
+                            emphasize = true
+                        )
 
                         Spacer(modifier = Modifier.height(12.sdp))
 
@@ -221,6 +215,20 @@ fun CartScreen(
                 verticalArrangement = Arrangement.spacedBy(10.sdp),
                 contentPadding = PaddingValues(bottom = 96.sdp)
             ) {
+                item {
+                    VoucherCard(
+                        code = voucherInput,
+                        appliedCode = appliedVoucher?.code.orEmpty(),
+                        discountAmount = discountAmount,
+                        onCodeChange = { voucherInput = it },
+                        onApply = { viewModel.applyVoucher(voucherInput) },
+                        onClear = {
+                            voucherInput = ""
+                            viewModel.clearVoucher()
+                        }
+                    )
+                }
+
                 items(items = cartItems, key = { item -> item.id }) { item ->
                     CartItemCard(
                         item = item,
@@ -256,6 +264,17 @@ fun CartScreen(
                         label = { Text("Địa chỉ nhận hàng cụ thể") },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.sdp))
+                    OutlinedTextField(
+                        value = orderNoteInput,
+                        onValueChange = { orderNoteInput = it },
+                        label = { Text("Ghi chú đơn hàng") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 2,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
                         )
@@ -344,7 +363,10 @@ fun CartScreen(
                             customerName = currentUser?.fullName?.takeIf { it.isNotBlank() }
                                 ?: "Khách hàng",
                             phoneNumber = phone,
-                            address = address
+                            address = address,
+                            discountCode = appliedVoucher?.code.orEmpty(),
+                            discountAmount = discountAmount,
+                            customerNote = orderNoteInput.trim()
                         )
                     }
                 ) {
@@ -357,6 +379,76 @@ fun CartScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun PriceRow(label: String, value: String, emphasize: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = if (emphasize) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = if (emphasize) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (emphasize) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
+}
+
+@Composable
+private fun VoucherCard(
+    code: String,
+    appliedCode: String,
+    discountAmount: Double,
+    onCodeChange: (String) -> Unit,
+    onApply: () -> Unit,
+    onClear: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.sdp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.sdp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.sdp),
+            verticalArrangement = Arrangement.spacedBy(8.sdp)
+        ) {
+            Text("Mã giảm giá", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.sdp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = onCodeChange,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Nhập mã voucher") },
+                    singleLine = true
+                )
+                Button(onClick = onApply, shape = RoundedCornerShape(12.sdp)) {
+                    Text("Áp dụng")
+                }
+            }
+            if (appliedCode.isNotBlank() && discountAmount > 0.0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Đã áp dụng $appliedCode, giảm ${discountAmount.formatPrice()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = onClear) { Text("Bỏ mã") }
+                }
+            }
+        }
     }
 }
 
@@ -397,6 +489,18 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(2.sdp))
 
+                val optionSummary = item.getCustomizationSummary()
+                if (optionSummary.isNotBlank()) {
+                    Text(
+                        optionSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.sdp))
+                }
+
                 // ĐÃ SỬA: Hạ font xuống labelMedium cho nhỏ gọn
                 Text(
                     "SL: ${item.quantity} x ${item.price.formatPrice()}",
@@ -418,7 +522,7 @@ fun CartItemCard(item: OrderItem, onDelete: (String) -> Unit) {
             }
 
             IconButton(onClick = { onDelete(item.id) }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                Icon(Icons.Default.Delete, contentDescription = "Xóa món")
             }
         }
     }

@@ -1,6 +1,8 @@
 import { ROLES } from "./services/constants.js";
 import { authService } from "./services/authService.js";
 import { productsService } from "./services/productsService.js";
+import { reviewsService } from "./services/reviewsService.js";
+import { vouchersService } from "./services/vouchersService.js";
 import { ordersService } from "./services/ordersService.js";
 import * as paymentsService from "./services/paymentsService.js";
 import { uploadProductImage } from "./supabase.js";
@@ -12,6 +14,14 @@ import { auth } from "./firebase.js";
 import { showSuccess, showError, showInfo } from "./toast.js";
 
 const $ = (id) => document.getElementById(id);
+
+const PRODUCT_CATEGORIES = ["Kem", "Trà sữa", "Trà trái cây", "Cà phê", "Nước", "Khác"];
+
+function normalizeProductCategory(category) {
+  const raw = String(category || "").trim();
+  const found = PRODUCT_CATEGORIES.find((item) => item.toLocaleLowerCase("vi-VN") === raw.toLocaleLowerCase("vi-VN"));
+  return found || raw;
+}
 
 const els = {
   // header
@@ -44,6 +54,8 @@ const els = {
    tabProducts: $("tab-products"),
    tabOrders: $("tab-orders"),
    tabPayments: $("tab-payments"), // 🆕
+   tabReviews: $("tab-reviews"),
+   tabVouchers: $("tab-vouchers"),
   // products
   tabRevenue: $("tab-revenue"),
   btnReloadProducts: $("btnReloadProducts"),
@@ -66,6 +78,20 @@ const els = {
   // payments 🆕
   btnReloadPayments: $("btnReloadPayments"),
   paymentsTable: $("paymentsTable"),
+  // reviews
+  btnReloadReviews: $("btnReloadReviews"),
+  reviewsTable: $("reviewsTable"),
+  // vouchers
+  btnReloadVouchers: $("btnReloadVouchers"),
+  voucherForm: $("voucherForm"),
+  v_code: $("v_code"),
+  v_title: $("v_title"),
+  v_percent: $("v_percent"),
+  v_amount: $("v_amount"),
+  v_min: $("v_min"),
+  v_active: $("v_active"),
+  btnResetVoucher: $("btnResetVoucher"),
+  vouchersTable: $("vouchersTable"),
 };
 
 // (ĐÃ XÓA: ADMIN_INVITE_CODE và các hàm isGatePassed, setGatePassed)
@@ -106,12 +132,12 @@ async function refreshProductsTable() {
       <td><code>${escapeHtml(p.id ?? "")}</code></td>
       <td>${escapeHtml(p.name ?? "")}</td>
       <td>${escapeHtml(String(p.price ?? ""))}</td>
-      <td>${escapeHtml(p.category ?? "")}</td>
-      <td>${escapeHtml(String(p.available ?? ""))}</td>
+      <td>${escapeHtml(normalizeProductCategory(p.category ?? ""))}</td>
+      <td>${p.available === false ? "Tạm hết" : "Đang bán"}</td>
       <td>
         <div class="row">
-          <button class="btn btn--ghost" data-act="edit" data-id="${escapeAttr(p.id ?? "")}">Edit</button>
-          <button class="btn btn--ghost" data-act="del" data-id="${escapeAttr(p.id ?? "")}" style="border-color: rgba(255,107,107,.45)">Delete</button>
+          <button class="btn btn--ghost" data-act="edit" data-id="${escapeAttr(p.id ?? "")}">Sửa</button>
+          <button class="btn btn--ghost" data-act="del" data-id="${escapeAttr(p.id ?? "")}" style="border-color: rgba(255,107,107,.45)">Xóa</button>
         </div>
       </td>
     `;
@@ -131,7 +157,7 @@ async function refreshProductsTable() {
       els.p_id.value = current.id ?? "";
       els.p_name.value = current.name ?? "";
       els.p_price.value = String(current.price ?? "");
-      els.p_category.value = current.category ?? "";
+      els.p_category.value = normalizeProductCategory(current.category ?? "");
       els.p_description.value = current.description ?? "";
       els.p_available.value = String(Boolean(current.available));
       els.p_imageUrl.value = current.imageUrl ?? "";
@@ -245,6 +271,141 @@ unsubPayments = paymentsService.listenTransactions((items) => {
   });
 }
 
+async function refreshReviewsTable() {
+  if (!els.reviewsTable) return;
+  const tbody = els.reviewsTable.querySelector("tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6" class="muted text-center">Đang tải...</td></tr>`;
+
+  const [reviews, products] = await Promise.all([
+    reviewsService.listReviews(),
+    productsService.listProducts(),
+  ]);
+  const productNames = new Map(products.map((p) => [p.id, p.name || p.id]));
+
+  if (reviews.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="muted text-center">Chưa có đánh giá nào</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = "";
+  reviews.forEach((review) => {
+    const updatedAt = review.updatedAt
+      ? new Date(review.updatedAt).toLocaleString("vi-VN")
+      : "-";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(productNames.get(review.productId) || review.productId || "")}</td>
+      <td>${escapeHtml(review.userName || review.userId || "")}</td>
+      <td class="font-bold" style="color: var(--primary);">${"★".repeat(Number(review.rating || 0))}</td>
+      <td>${escapeHtml(review.comment || "")}</td>
+      <td class="muted small">${updatedAt}</td>
+      <td>
+        <button class="btn btn--ghost" data-act="del-review" data-id="${escapeAttr(review.id)}" style="border-color: rgba(255,107,107,.45)">Xóa</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.onclick = async (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    const id = btn.getAttribute("data-id");
+    const review = reviews.find((x) => x.id === id);
+    if (!review) return;
+
+    const result = await Swal.fire({
+      title: "Xóa đánh giá này?",
+      text: "Đánh giá sẽ bị xóa vĩnh viễn và điểm sao sản phẩm sẽ được tính lại.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#888",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await reviewsService.deleteReview(review);
+        showSuccess("✅ Đã xóa đánh giá.");
+        await refreshReviewsTable();
+        await refreshProductsTable();
+      } catch (e) {
+        showError("❌ Lỗi khi xóa đánh giá: " + (e?.message ?? String(e)));
+      }
+    }
+  };
+}
+
+async function refreshVouchersTable() {
+  if (!els.vouchersTable) return;
+  const tbody = els.vouchersTable.querySelector("tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const vouchers = await vouchersService.listVouchers();
+  if (vouchers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="muted text-center">Chưa có mã giảm giá nào</td></tr>`;
+    return;
+  }
+
+  vouchers.forEach((voucher) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><code>${escapeHtml(voucher.code || "")}</code></td>
+      <td>${escapeHtml(voucher.title || "")}</td>
+      <td>${escapeHtml(String(voucher.discountPercent || 0))}%</td>
+      <td>${formatPrice(Number(voucher.discountAmount || 0))}</td>
+      <td>${formatPrice(Number(voucher.minOrderAmount || 0))}</td>
+      <td>${voucher.active ? '<span class="badge badge--success">Đang bật</span>' : '<span class="badge badge--warning">Tạm tắt</span>'}</td>
+      <td>
+        <div class="row">
+          <button class="btn btn--ghost" data-act="edit-voucher" data-id="${escapeAttr(voucher.id || voucher.code)}">Sửa</button>
+          <button class="btn btn--ghost" data-act="del-voucher" data-id="${escapeAttr(voucher.id || voucher.code)}" style="border-color: rgba(255,107,107,.45)">Xóa</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.onclick = async (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    const act = btn.getAttribute("data-act");
+    const id = btn.getAttribute("data-id");
+    const voucher = vouchers.find((x) => (x.id || x.code) === id);
+    if (!voucher) return;
+
+    if (act === "edit-voucher") {
+      els.v_code.value = voucher.code || "";
+      els.v_title.value = voucher.title || "";
+      els.v_percent.value = String(voucher.discountPercent || 0);
+      els.v_amount.value = String(voucher.discountAmount || 0);
+      els.v_min.value = String(voucher.minOrderAmount || 0);
+      els.v_active.value = String(voucher.active !== false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    if (act === "del-voucher") {
+      const result = await Swal.fire({
+        title: "Xóa voucher này?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#888",
+        confirmButtonText: "Xóa",
+        cancelButtonText: "Hủy",
+      });
+      if (result.isConfirmed) {
+        await vouchersService.deleteVoucher(id);
+        showSuccess("✅ Đã xóa voucher.");
+        await refreshVouchersTable();
+      }
+    }
+  };
+}
+
 function getPaymentStatusBadge(status) {
   const badges = {
     SUCCESS: '<span class="badge badge--success">✅ Thành Công</span>',
@@ -279,6 +440,8 @@ function switchTab(tabName) {
   setHidden(els.tabProducts, tabName !== "products");
   setHidden(els.tabOrders, tabName !== "orders");
   setHidden(els.tabPayments, tabName !== "payments");
+  setHidden(els.tabReviews, tabName !== "reviews");
+  setHidden(els.tabVouchers, tabName !== "vouchers");
   setHidden(els.tabRevenue, tabName !== "revenue");
 }
 
@@ -401,7 +564,7 @@ if (els.btnReloadOrders) {
    els.btnReloadOrders.onclick = async () => {
      try {
        els.btnReloadOrders.disabled = true;
-       console.log("🔄 Reloading orders...");
+       console.log("🔄 Đang tải lại danh sách đơn hàng...");
        initOrdersTab();
        showSuccess("✅ Đã tải lại danh sách đơn hàng");
      } finally {
@@ -422,6 +585,30 @@ if (els.btnReloadPayments) {
   };
 }
 
+if (els.btnReloadReviews) {
+  els.btnReloadReviews.onclick = async () => {
+    try {
+      els.btnReloadReviews.disabled = true;
+      await refreshReviewsTable();
+      showSuccess("🔄 Đã tải lại đánh giá");
+    } finally {
+      els.btnReloadReviews.disabled = false;
+    }
+  };
+}
+
+if (els.btnReloadVouchers) {
+  els.btnReloadVouchers.onclick = async () => {
+    try {
+      els.btnReloadVouchers.disabled = true;
+      await refreshVouchersTable();
+      showSuccess("🔄 Đã tải lại voucher");
+    } finally {
+      els.btnReloadVouchers.disabled = false;
+    }
+  };
+}
+
 if (els.btnResetProduct) {
   els.btnResetProduct.onclick = () => {
     els.p_id.value = "";
@@ -434,6 +621,17 @@ if (els.btnResetProduct) {
     els.p_imageUrl.dataset.path = "";
     if (els.p_imageFile) els.p_imageFile.value = "";
     if (els.uploadStatus) els.uploadStatus.textContent = "";
+  };
+}
+
+if (els.btnResetVoucher) {
+  els.btnResetVoucher.onclick = () => {
+    els.v_code.value = "";
+    els.v_title.value = "";
+    els.v_percent.value = "0";
+    els.v_amount.value = "0";
+    els.v_min.value = "0";
+    els.v_active.value = "true";
   };
 }
 
@@ -457,7 +655,7 @@ if (els.btnUploadImage) {
        els.p_imageUrl.value = publicUrl;
        // keep for saving into Firestore
        els.p_imageUrl.dataset.path = path;
-       els.uploadStatus.textContent = "✅ Upload OK";
+       els.uploadStatus.textContent = "✅ Tải ảnh thành công";
        showSuccess("✅ Tải lên ảnh thành công");
      } catch (e) {
        els.uploadStatus.textContent = "❌ Upload lỗi";
@@ -475,7 +673,7 @@ if (els.productForm) {
       id: els.p_id.value.trim() || undefined,
       name: els.p_name.value.trim(),
       price: Number(els.p_price.value),
-      category: els.p_category.value.trim(),
+      category: normalizeProductCategory(els.p_category.value),
       description: els.p_description.value.trim(),
       available: els.p_available.value === "true",
       imageUrl: els.p_imageUrl.value.trim(),
@@ -488,6 +686,28 @@ if (els.productForm) {
        await refreshProductsTable();
      } catch (e) {
        showError("❌ Lỗi: " + (e?.message ?? String(e)));
+    }
+  };
+}
+
+if (els.voucherForm) {
+  els.voucherForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const payload = {
+      code: els.v_code.value,
+      title: els.v_title.value,
+      discountPercent: Number(els.v_percent.value || 0),
+      discountAmount: Number(els.v_amount.value || 0),
+      minOrderAmount: Number(els.v_min.value || 0),
+      active: els.v_active.value === "true",
+    };
+    try {
+      await vouchersService.upsertVoucher(payload);
+      showSuccess("✅ Mã giảm giá đã được lưu.");
+      els.btnResetVoucher.onclick();
+      await refreshVouchersTable();
+    } catch (e) {
+      showError("❌ Lỗi lưu mã giảm giá: " + (e?.message ?? String(e)));
     }
   };
 }
@@ -556,6 +776,8 @@ authService.listen(async (user) => {
      await refreshProductsTable();
      initOrdersTab(); // 🔄 Use new orders UI
      refreshPaymentsTable(); // 🆕 Load payments
+     await refreshReviewsTable();
+     await refreshVouchersTable();
 
      // --- BỔ SUNG LOGIC ĐẾM SỐ LƯỢNG ĐƠN HÀNG (REALTIME) ---
           import("./services/ordersService.js").then(({ ordersService }) => {

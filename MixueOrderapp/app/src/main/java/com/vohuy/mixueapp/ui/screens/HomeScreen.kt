@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -82,6 +83,7 @@ import com.vohuy.mixueapp.data.model.Product
 import com.vohuy.mixueapp.ui.navigation.Routes
 import com.vohuy.mixueapp.ui.viewmodel.AuthViewModel
 import com.vohuy.mixueapp.ui.viewmodel.HomeViewModel
+import com.vohuy.mixueapp.utils.Constants
 import com.vohuy.mixueapp.utils.formatPrice
 import com.vohuy.mixueapp.utils.sdp
 import java.util.Locale
@@ -107,7 +109,7 @@ fun HomeScreen(
     // UI-only local state (no ViewModel changes)
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Tất cả") }
-    val categories = remember { listOf("Tất cả", "Kem", "Trà Sữa", "Nước") }
+    val categories = remember { listOf("Tất cả") + Constants.PRODUCT_CATEGORIES }
 
     val filteredProducts = remember(products, query, selectedCategory) {
         val q = query.trim().lowercase(Locale.getDefault())
@@ -222,7 +224,10 @@ fun HomeScreen(
                                             contentDescription = "Thoát"
                                         )
                                     },
+
                                     onClick = {
+
+
                                         // Đóng menu
                                         isMenuOpen = false
 
@@ -516,6 +521,34 @@ fun ProductGridCard(product: Product, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary, // Giá màu đỏ nổi bật
                     fontWeight = FontWeight.Bold
                 )
+
+                Spacer(modifier = Modifier.height(4.sdp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.sdp)
+                    )
+                    Spacer(modifier = Modifier.size(3.sdp))
+                    Text(
+                        text = if (product.ratingCount > 0) {
+                            String.format(
+                                Locale("vi", "VN"),
+                                "%.1f (%d)",
+                                product.ratingAverage,
+                                product.ratingCount
+                            )
+                        } else {
+                            "Chưa có đánh giá"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
