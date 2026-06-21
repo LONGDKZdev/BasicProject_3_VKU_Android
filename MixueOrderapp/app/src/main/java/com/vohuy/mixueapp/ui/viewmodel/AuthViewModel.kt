@@ -190,5 +190,19 @@ class AuthViewModel : BaseViewModel() {
             }
         }
     }
+
+    /**
+     * Xử lý khôi phục mật khẩu
+     */
+    fun resetPassword(email: String) {
+        setLoading(true)
+        repository.resetPassword(email).observeForever { result ->
+            when (result) {
+                is Result.Success -> setSuccess("Đã gửi liên kết khôi phục. Vui lòng kiểm tra Email!")
+                is Result.Error -> setError(result.exception.message ?: "Lỗi gửi email khôi phục")
+                is Result.Loading -> setLoading(true)
+            }
+        }
+    }
 }
 

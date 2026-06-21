@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -257,6 +259,29 @@ fun LoginScreen(
                     }
                 )
             )
+
+            AnimatedVisibility(visible = isLoginTab) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.sdp, end = 4.sdp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Text(
+                        text = "Quên mật khẩu?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable {
+                            if (email.isNotBlank()) {
+                                vm.resetPassword(email.trim())
+                            } else {
+                                vm.setError("Vui lòng nhập Email vào ô trống phía trên trước!")
+                            }
+                        }
+                    )
+                }
+            }
 
             // Field: Nhập lại mật khẩu
             AnimatedVisibility(visible = !isLoginTab) {

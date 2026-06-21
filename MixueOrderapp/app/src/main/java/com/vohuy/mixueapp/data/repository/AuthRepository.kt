@@ -2,6 +2,7 @@ package com.vohuy.mixueapp.data.repository
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.vohuy.mixueapp.base.BaseRepository
 import com.vohuy.mixueapp.data.model.User
@@ -15,6 +16,8 @@ import com.vohuy.mixueapp.utils.Result
  * Không code Firebase trực tiếp trong Activity/Fragment
  */
 class AuthRepository : BaseRepository() {
+
+    private val firebaseAuth = FirebaseAuth.getInstance()
 
     /**
      * Đăng ký người dùng mới
@@ -159,6 +162,24 @@ class AuthRepository : BaseRepository() {
         } else {
             result.value = Result.Error(Exception("Chưa đăng nhập"))
         }
+        return result
+    }
+
+    /**
+     * Gửi email khôi phục mật khẩu
+     */
+    fun resetPassword(email: String): LiveData<Result<Unit>> {
+        val result = MutableLiveData<Result<Unit>>()
+        result.value = Result.Loading()
+
+        // Sử dụng biến auth đã được khởi tạo sẵn ở BaseRepository
+        auth.sendPasswordResetEmail(email)
+            .addOnSuccessListener {
+                result.value = Result.Success(Unit)
+            }
+            .addOnFailureListener { e ->
+                result.value = Result.Error(e)
+            }
         return result
     }
 }
